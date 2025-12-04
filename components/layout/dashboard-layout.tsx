@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { BarChart3, Package, Users, ShoppingCart, Filter, Mail, LogOut, Menu, X, User } from 'lucide-react'
+import { BarChart3, Package, Users, ShoppingCart, Filter, Mail, LogOut, Menu, X, User, MoreVertical } from 'lucide-react'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -23,7 +23,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
@@ -86,68 +86,75 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   ]
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside
-        className={`${
-          sidebarOpen ? 'w-64' : 'w-20'
-        } bg-sidebar border-r border-sidebar-border transition-all duration-300 flex flex-col`}
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Sidebar Container - Handles Hover */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 flex transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-16'
+          }`}
+        onMouseEnter={() => setSidebarOpen(true)}
+        onMouseLeave={() => setSidebarOpen(false)}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
-          {sidebarOpen && (
-            <h1 className="text-lg font-bold text-sidebar-foreground">CRM</h1>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-sidebar-accent rounded-lg"
-          >
+        <aside className="h-full w-full bg-sidebar border-r border-sidebar-border flex flex-col shadow-2xl overflow-hidden transition-all duration-300">
+          {/* Header */}
+          <div className="px-3 py-4 border-b border-sidebar-border flex items-center justify-between h-16 shrink-0">
             {sidebarOpen ? (
-              <X className="h-4 w-4" />
-            ) : (
-              <Menu className="h-4 w-4" />
-            )}
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon
-            return (
-              <Link key={item.href} href={item.href}>
-                <div className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors">
-                  <Icon className="h-5 w-5" />
-                  {sidebarOpen && <span>{item.label}</span>}
+              <div className="flex items-center gap-3 px-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <span className="font-bold text-primary">M</span>
                 </div>
-              </Link>
-            )
-          })}
-        </nav>
+                <h1 className="text-xl font-bold text-sidebar-foreground animate-in fade-in duration-300">Malar CRM</h1>
+              </div>
+            ) : (
+              <div className="w-full h-6" /> // Empty placeholder to maintain height
+            )}
+          </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-sidebar-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLogout}
-            disabled={loading}
-            className="w-full justify-start gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            {sidebarOpen && (loading ? 'Logging out...' : 'Logout')}
-          </Button>
-        </div>
-      </aside>
+          {/* Navigation */}
+          <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
+            {menuItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link key={item.href} href={item.href}>
+                  <div className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${sidebarOpen
+                    ? 'hover:bg-sidebar-accent text-sidebar-foreground'
+                    : 'justify-center hover:bg-sidebar-accent text-sidebar-foreground'
+                    }`}>
+                    <Icon className={`h-5 w-5 transition-colors ${sidebarOpen ? '' : 'h-6 w-6'}`} />
+                    {sidebarOpen && (
+                      <span className="font-medium animate-in fade-in slide-in-from-left-2 duration-300">
+                        {item.label}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div className="p-4 border-t border-sidebar-border shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              disabled={loading}
+              className={`w-full ${sidebarOpen ? 'justify-start gap-2' : 'justify-center px-0'}`}
+            >
+              <LogOut className="h-4 w-4" />
+              {sidebarOpen && (loading ? 'Logging out...' : 'Logout')}
+            </Button>
+          </div>
+        </aside>
+      </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto flex flex-col">
+      <main className="flex-1 flex flex-col ml-16 transition-all duration-300 h-screen">
         {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-semibold">Dashboard</h2>
           </div>
-          
+
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

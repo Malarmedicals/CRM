@@ -72,12 +72,37 @@ export const productService = {
   async getAllProducts(): Promise<Product[]> {
     try {
       const querySnapshot = await getDocs(collection(db, 'products'))
-      return querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      } as Product))
+      return querySnapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          name: data.name || '',
+          description: data.description || '',
+          price: data.price || 0,
+          discount: data.discount || 0,
+          category: data.category || '',
+          subcategory: data.subcategory || '',
+          batchNumber: data.batchNumber || '',
+          expiryDate: data.expiryDate?.toDate() || new Date(),
+          stockQuantity: data.stockQuantity || 0,
+          images: data.images || [],
+          primaryImage: data.primaryImage,
+          additionalImages: data.additionalImages,
+          productDetails: data.productDetails || [],
+          colorVariants: data.colorVariants || [],
+          materials: data.materials || [],
+          seoTags: data.seoTags,
+          hsnCode: data.hsnCode,
+          gstRate: data.gstRate,
+          vendor: data.vendor,
+          brandName: data.brandName,
+          stockStatus: data.stockStatus || 'in-stock',
+          estimatedDelivery: data.estimatedDelivery,
+          freeShippingThreshold: data.freeShippingThreshold,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Product
+      })
     } catch (error: any) {
       throw new Error(`Failed to fetch products: ${error.message}`)
     }

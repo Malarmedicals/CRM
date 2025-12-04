@@ -11,7 +11,7 @@ import { AlertCircle, Mail, Send } from 'lucide-react'
 export default function EmailCampaigns() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [showForm, setShowForm] = useState(false)
-  const [selectedSegment, setSelectedSegment] = useState<'all' | 'regular' | 'prescription' | 'high_value'>('all')
+  const [selectedSegment, setSelectedSegment] = useState<'all' | 'regular' | 'prescription' | 'highValue'>('all')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -33,14 +33,31 @@ export default function EmailCampaigns() {
   const handleSendCampaign = async (templateId: string) => {
     setLoading(true)
     try {
-      const template = templates.find((t) => t.id === templateId)
+      const template = templates.find((t) => t.id === templateId) || sampleTemplates.find((t) => t.id === templateId)
       if (!template) throw new Error('Template not found')
 
-      await notificationService.sendSegmentedEmail(
-        selectedSegment as any,
-        template.name,
-        {}
-      )
+      // For sample templates, we generate content and send directly
+      if (sampleTemplates.find(t => t.id === templateId)) {
+        const htmlContent = `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h1>${template.name}</h1>
+            <p>${template.description}</p>
+            <hr />
+            <p>This is a sample email campaign sent from Malar CRM.</p>
+          </div>
+        `
+        await notificationService.sendSegmentedEmailDirect(
+          selectedSegment,
+          template.subject,
+          htmlContent
+        )
+      } else {
+        await notificationService.sendSegmentedEmail(
+          selectedSegment as any,
+          template.name,
+          {}
+        )
+      }
 
       alert('Campaign sent successfully!')
       setShowForm(false)
@@ -117,7 +134,7 @@ export default function EmailCampaigns() {
                 <option value="all">All Customers</option>
                 <option value="regular">Regular Customers</option>
                 <option value="prescription">Prescription Customers</option>
-                <option value="high_value">High-Value Customers</option>
+                <option value="highValue">High-Value Customers</option>
               </select>
             </div>
 
@@ -145,9 +162,15 @@ export default function EmailCampaigns() {
 
               <p className="text-sm">{template.description}</p>
 
-              <Button variant="outline" size="sm" className="w-full gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full gap-2"
+                onClick={() => handleSendCampaign(template.id)}
+                disabled={loading}
+              >
                 <Send className="h-3 w-3" />
-                Send This Template
+                {loading ? 'Sending...' : 'Send This Template'}
               </Button>
             </div>
           </Card>

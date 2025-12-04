@@ -39,7 +39,7 @@ export const orderService = {
     }
   },
 
-  // Get all orders (admin/manager) or user's own orders
+  // Get all orders (Admin/manager) or user's own orders
   async getAllOrders(): Promise<Order[]> {
     try {
       const currentUser = auth.currentUser
@@ -47,14 +47,31 @@ export const orderService = {
         throw new Error('User not authenticated')
       }
 
-      // Check if user is admin or manager
+      // Check if user is admin or manager (safely handle undefined/null)
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+      if (!userDoc.exists()) {
+        throw new Error('User document not found')
+      }
       const userData = userDoc.data()
-      const isAdminOrManager = userData?.role === 'admin' || userData?.role === 'manager'
+      const roleValue = userData?.role
+      // Safe role normalization: ensure it's a string before calling toLowerCase
+      const userRole = roleValue && typeof roleValue === 'string' 
+        ? (roleValue || '').toLowerCase().trim() 
+        : ''
+      const isAdminOrManager = userRole === 'admin' || userRole === 'manager'
+      
+      // Debug log if role check fails
+      if (!isAdminOrManager && roleValue) {
+        console.warn('[DEBUG] Order service - User is not admin/manager:', {
+          uid: currentUser.uid,
+          role: roleValue,
+          normalizedRole: userRole || 'empty'
+        })
+      }
 
       let querySnapshot
       if (isAdminOrManager) {
-        // Admin/Manager can see all orders
+        // Admin/manager can see all orders
         querySnapshot = await getDocs(collection(db, 'orders'))
       } else {
         // Regular users can only see their own orders

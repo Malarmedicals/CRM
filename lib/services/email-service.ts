@@ -7,6 +7,7 @@ export interface EmailTemplate {
   subject: string
   htmlContent: string
   variables: string[] // e.g., {{customerName}}, {{orderNumber}}
+  description?: string
   createdAt?: Date
 }
 
@@ -123,18 +124,57 @@ export const emailService = {
       const htmlContent = this.replaceTemplateVariables(template.htmlContent, variables)
       const subject = this.replaceTemplateVariables(template.subject, variables)
 
+      await this.sendEmailBatch(recipientEmails, subject, htmlContent)
+    } catch (error: any) {
+      throw new Error(`Failed to send promotional email: ${error.message}`)
+    }
+  },
+
+  // Send batch emails with direct content
+  async sendEmailBatch(
+    recipientEmails: string[],
+    subject: string,
+    htmlContent: string
+  ): Promise<void> {
+    try {
       // Queue emails for each recipient
       for (const email of recipientEmails) {
-        await this.queueEmail({
+        // 1. Queue in Firestore
+        const emailId = await this.queueEmail({
           to: email,
           from: 'noreply@medicinecrm.com',
           subject,
           htmlContent,
           status: 'pending',
         })
+
+        // 2. Call API to send immediately
+        try {
+          const response = await fetch('/api/send-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: email,
+              subject,
+              html: htmlContent,
+            }),
+          })
+
+          if (!response.ok) {
+            console.error(`Failed to send email to ${email}:`, await response.text())
+            // Update status to failed in Firestore (optional, requires update method)
+          } else {
+            // Update status to sent in Firestore (optional, requires update method)
+            // For now, we assume success if API returns 200
+          }
+        } catch (apiError) {
+          console.error(`Error calling email API for ${email}:`, apiError)
+        }
       }
     } catch (error: any) {
-      throw new Error(`Failed to send promotional email: ${error.message}`)
+      throw new Error(`Failed to send batch emails: ${error.message}`)
     }
   },
 }

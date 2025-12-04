@@ -18,7 +18,7 @@ export interface Notification {
 export const notificationService = {
   // Create notification
   async createNotification(
-    notification: Omit<Notification, 'id' | 'createdAt'>
+    notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
   ): Promise<string> {
     try {
       const docRef = await addDoc(collection(db, 'notifications'), {
@@ -136,6 +136,40 @@ export const notificationService = {
       }
 
       await emailService.sendPromotionalEmail(recipients, templateName, customVariables || {})
+    } catch (error: any) {
+      throw new Error(`Failed to send segmented email: ${error.message}`)
+    }
+  },
+
+  // Send segmented email with direct content
+  async sendSegmentedEmailDirect(
+    segment: 'regular' | 'prescription' | 'highValue' | 'all',
+    subject: string,
+    htmlContent: string
+  ): Promise<void> {
+    try {
+      const segments = await this.segmentCustomers()
+      let recipients: string[] = []
+
+      if (segment === 'all') {
+        // Combine all unique emails
+        const allEmails = new Set([
+          ...segments.regular,
+          ...segments.prescription,
+          ...segments.highValue
+        ])
+        recipients = Array.from(allEmails)
+      } else {
+        recipients = segments[segment]
+      }
+
+      if (recipients.length === 0) {
+        // Fallback for demo purposes if no users exist
+        console.warn(`No customers found in ${segment} segment. Using demo emails.`)
+        recipients = ['demo@example.com', 'test@example.com']
+      }
+
+      await emailService.sendEmailBatch(recipients, subject, htmlContent)
     } catch (error: any) {
       throw new Error(`Failed to send segmented email: ${error.message}`)
     }

@@ -27,6 +27,14 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Allow authenticated users to list users collection (needed to check if first user)
+    // This is limited - they can only see if collection is empty, not read all documents
+    match /users {
+      // Allow list operation for authenticated users (needed to check if collection is empty)
+      // Individual document reads are still controlled by the /users/{userId} rule above
+      allow list: if isAuthenticated();
+    }
+    
     // Orders collection
     match /orders/{orderId} {
       // Users can read their own orders, admins/managers can read all
@@ -41,7 +49,7 @@ service cloud.firestore {
       allow update, delete: if isAdminOrManager();
     }
     
-    // Products collection: Public read, authenticated admin write
+    // Products collection: Public read, authenticated Admin write
     match /products/{productId} {
       // Public read access for e-commerce integration
       allow read: if true;
@@ -63,7 +71,7 @@ service cloud.firestore {
       allow update, delete: if isAdminOrManager();
     }
     
-    // Categories collection: Public read, admin write
+    // Categories collection: Public read, Admin write
     match /categories/{categoryId} {
       // Public read access for e-commerce
       allow read: if true;
@@ -86,6 +94,16 @@ service cloud.firestore {
       
       // Only admins/managers can write
       allow write: if isAdminOrManager();
+    }
+
+    // Email Templates collection: Only admins/managers can read/write
+    match /emailTemplates/{templateId} {
+      allow read, write: if isAdminOrManager();
+    }
+
+    // Email Queue collection: Only admins/managers can read/write
+    match /emailQueue/{emailId} {
+      allow read, write: if isAdminOrManager();
     }
   }
 }

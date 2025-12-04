@@ -2,7 +2,7 @@ export interface User {
   id: string
   email: string
   displayName: string
-  role: 'admin' | 'manager' | 'user'
+  role: 'admin' | 'manager' | 'user' | 'customer'
   isBlocked: boolean
   createdAt: Date
   updatedAt: Date

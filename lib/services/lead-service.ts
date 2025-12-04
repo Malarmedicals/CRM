@@ -42,12 +42,21 @@ export const leadService = {
   async getAllLeads(): Promise<Lead[]> {
     try {
       const querySnapshot = await getDocs(collection(db, 'leads'))
-      return querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      } as Lead))
+      return querySnapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          stage: (data.stage || 'new') as Lead['stage'],
+          priority: (data.priority || 'medium') as Lead['priority'],
+          notes: data.notes || '',
+          customerValue: data.customerValue as Lead['customerValue'],
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Lead
+      })
     } catch (error: any) {
       throw new Error(`Failed to fetch leads: ${error.message}`)
     }
@@ -58,12 +67,21 @@ export const leadService = {
     try {
       const q = query(collection(db, 'leads'), where('stage', '==', stage))
       const querySnapshot = await getDocs(q)
-      return querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      } as Lead))
+      return querySnapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          stage: (data.stage || 'new') as Lead['stage'],
+          priority: (data.priority || 'medium') as Lead['priority'],
+          notes: data.notes || '',
+          customerValue: data.customerValue as Lead['customerValue'],
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Lead
+      })
     } catch (error: any) {
       throw new Error(`Failed to fetch leads by stage: ${error.message}`)
     }
