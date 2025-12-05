@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import nodemailer from 'nodemailer'
+import { MailerSend, EmailParams, Sender, Recipient } from 'mailersend'
 
 export async function POST(request: Request) {
     try {
@@ -12,38 +12,21 @@ export async function POST(request: Request) {
             )
         }
 
-        // Create a transporter
-        // Look for environment variables first
-        const smtpHost = process.env.SMTP_HOST
-        const smtpPort = parseInt(process.env.SMTP_PORT || '587')
-        const smtpUser = process.env.SMTP_USER
-        const smtpPass = process.env.SMTP_PASS
+        const API_KEY = process.env.MAILERSEND_API_KEY
+        const SENDER_EMAIL = process.env.MAILERSEND_FROM
 
-        let transporter
-
-        if (smtpHost && smtpUser && smtpPass) {
-            // Use provided SMTP credentials
-            transporter = nodemailer.createTransport({
-                host: smtpHost,
-                port: smtpPort,
-                secure: smtpPort === 465, // true for 465, false for other ports
-                auth: {
-                    user: smtpUser,
-                    pass: smtpPass,
-                },
-            })
-        } else {
+        if (!API_KEY || !SENDER_EMAIL) {
             // Fallback: Log to console (simulated sending)
             console.log('---------------------------------------------------')
-            console.log('⚠️  SMTP Credentials not found. Simulating email send.')
+            console.log('⚠️  Mailersend Credentials not found. Simulating email send.')
+            console.log('Debug Info:')
+            console.log(`- MAILERSEND_API_KEY: ${API_KEY ? 'Present' : 'MISSING'}`)
+            console.log(`- MAILERSEND_FROM: ${SENDER_EMAIL ? 'Present' : 'MISSING'}`)
             console.log(`To: ${to}`)
             console.log(`Subject: ${subject}`)
             console.log('--- Content ---')
-            console.log(html) // Log HTML content (might be long)
+            console.log(html)
             console.log('---------------------------------------------------')
-
-            // For a more realistic test without credentials, we could use Ethereal
-            // but console log is safer/faster for immediate feedback.
 
             return NextResponse.json({
                 message: 'Email simulated (check server console)',
@@ -51,19 +34,29 @@ export async function POST(request: Request) {
             })
         }
 
-        // Send mail with defined transport object
-        const info = await transporter.sendMail({
-            from: process.env.SMTP_FROM || '"Malar CRM" <noreply@malarcrm.com>', // sender address
-            to: Array.isArray(to) ? to.join(', ') : to, // list of receivers
-            subject: subject, // Subject line
-            html: html, // html body
+        const mailersend = new MailerSend({
+            apiKey: API_KEY,
         })
 
-        console.log('Message sent: %s', info.messageId)
+        const recipients = Array.isArray(to)
+            ? to.map(email => new Recipient(email))
+            : [new Recipient(to)]
 
-        return NextResponse.json({ message: 'Email sent successfully', messageId: info.messageId })
+        const sentFrom = new Sender(SENDER_EMAIL, "Malar CRM")
+
+        const emailParams = new EmailParams()
+            .setFrom(sentFrom)
+            .setTo(recipients)
+            .setSubject(subject)
+            .setHtml(html)
+
+        const result = await mailersend.email.send(emailParams)
+
+        console.log('Message sent via Mailersend:', result)
+
+        return NextResponse.json({ message: 'Email sent successfully', id: result })
     } catch (error: any) {
-        console.error('Error sending email:', error)
+        console.error('Error sending email via Mailersend:', error)
         return NextResponse.json(
             { error: 'Failed to send email', details: error.message },
             { status: 500 }
