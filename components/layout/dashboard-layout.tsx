@@ -166,7 +166,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <header className="bg-background border-b border-border px-4 md:px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileOpen(true)}>
-              <Menu className="h-6 w-6" />
+              <MoreVertical className="h-6 w-6" />
             </Button>
             <h2 className="text-xl font-semibold">Dashboard</h2>
           </div>
