@@ -6,7 +6,9 @@ import { User } from '@/lib/models/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Search, Lock, Unlock } from 'lucide-react'
+import { Search, Lock, Unlock, Phone, Edit2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -14,6 +16,9 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [updating, setUpdating] = useState(false)
 
   // Helper function to safely normalize role (must be defined before use)
   // This function NEVER throws an error, always returns a valid role
@@ -227,6 +232,42 @@ export default function UsersPage() {
     }
   }
 
+  const handleEditPhone = (user: User) => {
+    setEditingUser(user)
+    setPhoneNumber(user.phoneNumber || '')
+  }
+
+  const handleUpdatePhone = async () => {
+    if (!editingUser) return
+
+    setUpdating(true)
+    try {
+      // Validate phone number format
+      const phoneRegex = /^\+?[1-9]\d{1,14}$/
+      const cleanPhone = phoneNumber.replace(/\s|-|\(|\)/g, '')
+      const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`
+
+      if (phoneNumber && !phoneRegex.test(formattedPhone)) {
+        setError('Invalid phone number format. Use international format: +1234567890')
+        setUpdating(false)
+        return
+      }
+
+      await userService.updateUserPhone(editingUser.id, phoneNumber ? formattedPhone : '')
+      setUsers(users.map((user) =>
+        user.id === editingUser.id ? { ...user, phoneNumber: phoneNumber ? formattedPhone : undefined } : user
+      ))
+      setEditingUser(null)
+      setPhoneNumber('')
+      setError(null)
+    } catch (error: any) {
+      console.error('Failed to update phone number:', error)
+      setError(error.message || 'Failed to update phone number')
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -257,6 +298,7 @@ export default function UsersPage() {
               <tr className="text-left">
                 <th className="pb-3 font-semibold">Name</th>
                 <th className="pb-3 font-semibold">Email</th>
+                <th className="pb-3 font-semibold">Phone</th>
                 <th className="pb-3 font-semibold">Role</th>
                 <th className="pb-3 font-semibold">Status</th>
                 <th className="pb-3 font-semibold">Action</th>
@@ -267,6 +309,13 @@ export default function UsersPage() {
               <tr key={user.id} className="border-b border-border hover:bg-muted/50">
                 <td className="py-4">{user.displayName || 'N/A'}</td>
                 <td className="py-4">{user.email || 'N/A'}</td>
+                <td className="py-4">
+                  {user.phoneNumber ? (
+                    <span className="text-sm">{user.phoneNumber}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm italic">Not set</span>
+                  )}
+                </td>
                 <td className="py-4">
                   <span className="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full font-medium">
                     {user.role}
@@ -280,24 +329,86 @@ export default function UsersPage() {
                   )}
                 </td>
                 <td className="py-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBlockToggle(user.id, user.isBlocked)}
-                    className="gap-2"
-                  >
-                    {user.isBlocked ? (
-                      <>
-                        <Unlock className="h-3 w-3" />
-                        Unblock
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-3 w-3" />
-                        Block
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditPhone(user)}
+                          className="gap-1"
+                        >
+                          <Phone className="h-3 w-3" />
+                          {user.phoneNumber ? 'Edit' : 'Add'}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Phone Number</DialogTitle>
+                          <DialogDescription>
+                            Add or update phone number for {user.displayName || user.email}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="phone">Phone Number</Label>
+                            <Input
+                              id="phone"
+                              placeholder="+919876543210"
+                              value={phoneNumber}
+                              onChange={(e) => setPhoneNumber(e.target.value)}
+                              disabled={updating}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Use international format: +91XXXXXXXXXX (India) or +1234567890 (required for WhatsApp notifications)
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              India example: +919876543210 (10 digits after +91)
+                            </p>
+                          </div>
+                          {error && (
+                            <div className="p-3 bg-destructive/10 border border-destructive rounded-lg">
+                              <p className="text-sm text-destructive">{error}</p>
+                            </div>
+                          )}
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setEditingUser(null)
+                                setPhoneNumber('')
+                                setError(null)
+                              }}
+                              disabled={updating}
+                            >
+                              Cancel
+                            </Button>
+                            <Button onClick={handleUpdatePhone} disabled={updating} className="gap-2">
+                              {updating ? 'Updating...' : 'Update Phone'}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBlockToggle(user.id, user.isBlocked)}
+                      className="gap-2"
+                    >
+                      {user.isBlocked ? (
+                        <>
+                          <Unlock className="h-3 w-3" />
+                          Unblock
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-3 w-3" />
+                          Block
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </td>
               </tr>
               ))}

@@ -103,8 +103,14 @@ export const notificationService = {
 
       // Simple segmentation logic
       for (const user of users) {
+        // Only include users with valid email addresses
+        if (!user.email || user.email.trim() === '') {
+          console.warn(`User ${user.id} has no email address, skipping`)
+          continue
+        }
+
         const userOrders = orders.filter((order) => order.userId === user.id)
-        const totalSpent = userOrders.reduce((sum, order) => sum + order.totalAmount, 0)
+        const totalSpent = userOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
 
         if (totalSpent > 1000) {
           segments.highValue.push(user.email)
@@ -114,6 +120,16 @@ export const notificationService = {
           segments.regular.push(user.email)
         }
       }
+
+      console.log('📋 Segmentation complete:', {
+        totalUsers: users.length,
+        usersWithOrders: users.filter(u => orders.some(o => o.userId === u.id)).length,
+        segments: {
+          regular: segments.regular,
+          prescription: segments.prescription,
+          highValue: segments.highValue
+        }
+      })
 
       return segments
     } catch (error: any) {
@@ -151,6 +167,13 @@ export const notificationService = {
       const segments = await this.segmentCustomers()
       let recipients: string[] = []
 
+      console.log('📊 Customer Segmentation Results:', {
+        regular: segments.regular.length,
+        prescription: segments.prescription.length,
+        highValue: segments.highValue.length,
+        selectedSegment: segment
+      })
+
       if (segment === 'all') {
         // Combine all unique emails
         const allEmails = new Set([
@@ -168,6 +191,8 @@ export const notificationService = {
         console.warn(`No customers found in ${segment} segment. Using demo emails.`)
         recipients = ['demo@example.com', 'test@example.com']
       }
+
+      console.log(`📧 Sending email campaign to ${recipients.length} recipient(s):`, recipients)
 
       await emailService.sendEmailBatch(recipients, subject, htmlContent)
     } catch (error: any) {

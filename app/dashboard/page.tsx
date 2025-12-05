@@ -120,7 +120,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Sales</p>
-              <p className="text-2xl font-bold">${stats.totalSales.toFixed(2)}</p>
+              <p className="text-2xl font-bold">₹{stats.totalSales.toFixed(2)}</p>
             </div>
             <TrendingUp className="h-8 w-8 text-green-600 opacity-50" />
           </div>

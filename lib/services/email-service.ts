@@ -137,6 +137,25 @@ export const emailService = {
     htmlContent: string
   ): Promise<void> {
     try {
+      // Get the base URL - works in both client and server contexts
+      const getBaseUrl = () => {
+        if (typeof window !== 'undefined') {
+          // Client-side: use current origin
+          return window.location.origin
+        }
+        // Server-side: use environment variable or default
+        if (process.env.NEXT_PUBLIC_BASE_URL) {
+          return process.env.NEXT_PUBLIC_BASE_URL
+        }
+        if (process.env.VERCEL_URL) {
+          return `https://${process.env.VERCEL_URL}`
+        }
+        return 'http://localhost:3000'
+      }
+
+      const baseUrl = getBaseUrl()
+      const apiUrl = `${baseUrl}/api/send-email`
+
       // Queue emails for each recipient
       for (const email of recipientEmails) {
         // 1. Queue in Firestore
@@ -150,7 +169,7 @@ export const emailService = {
 
         // 2. Call API to send immediately
         try {
-          const response = await fetch('/api/send-email', {
+          const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -163,14 +182,33 @@ export const emailService = {
           })
 
           if (!response.ok) {
-            console.error(`Failed to send email to ${email}:`, await response.text())
+            let errorText: string
+            let errorData: any
+            
+            try {
+              errorData = await response.json()
+              errorText = errorData.details || errorData.error || JSON.stringify(errorData)
+            } catch {
+              errorText = await response.text()
+            }
+            
+            console.error(`Failed to send email to ${email}:`, errorText)
+            console.error('Full error response:', errorData)
+            
             // Update status to failed in Firestore (optional, requires update method)
+            throw new Error(`Email API returned ${response.status}: ${errorText}`)
           } else {
+            const result = await response.json()
+            if (result.simulated) {
+              console.warn(`Email simulated (credentials missing) for ${email}. Check server console for details.`)
+            } else {
+              console.log(`Email sent successfully to ${email}`, result)
+            }
             // Update status to sent in Firestore (optional, requires update method)
-            // For now, we assume success if API returns 200
           }
-        } catch (apiError) {
+        } catch (apiError: any) {
           console.error(`Error calling email API for ${email}:`, apiError)
+          throw new Error(`Failed to send email to ${email}: ${apiError.message}`)
         }
       }
     } catch (error: any) {

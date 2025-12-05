@@ -105,5 +105,15 @@ service cloud.firestore {
     match /emailQueue/{emailId} {
       allow read, write: if isAdminOrManager();
     }
+
+    // WhatsApp Templates collection: Only admins/managers can read/write
+    match /whatsappTemplates/{templateId} {
+      allow read, write: if isAdminOrManager();
+    }
+
+    // WhatsApp Queue collection: Only admins/managers can read/write
+    match /whatsappQueue/{messageId} {
+      allow read, write: if isAdminOrManager();
+    }
   }
 }

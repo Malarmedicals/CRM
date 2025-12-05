@@ -130,6 +130,7 @@ export const userService = {
           displayName: (data?.displayName && typeof data.displayName === 'string' ? data.displayName : null)
             || (data?.name && typeof data.name === 'string' ? data.name : null)
             || 'Unknown User',
+          phoneNumber: data?.phoneNumber && typeof data.phoneNumber === 'string' ? data.phoneNumber : undefined,
           role: normalizedRole,
           isBlocked: data?.isBlocked === true,
           createdAt: data?.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
@@ -196,6 +197,60 @@ export const userService = {
       })
     } catch (error: any) {
       throw new Error(`Failed to update user block status: ${error.message}`)
+    }
+  },
+
+  // Update user phone number (Admin/manager only)
+  async updateUserPhone(userId: string, phoneNumber: string): Promise<void> {
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        throw new Error('User not authenticated')
+      }
+
+      // Check if user document exists
+      let userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+      if (!userDoc.exists()) {
+        const allUsers = await getDocs(collection(db, 'users'))
+        const isFirstUser = allUsers.empty
+
+        await setDoc(doc(db, 'users', currentUser.uid), {
+          email: currentUser.email || '',
+          displayName: currentUser.displayName || '',
+          role: isFirstUser ? 'admin' : 'user',
+          isBlocked: false,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        })
+        userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+      }
+
+      const userData = userDoc.data()
+      const roleValue = userData?.role
+      const userRole = roleValue && typeof roleValue === 'string'
+        ? (roleValue || '').toLowerCase().trim()
+        : ''
+      const isAdminOrManager = userRole === 'admin' || userRole === 'manager'
+
+      if (!isAdminOrManager) {
+        throw new Error('Insufficient permissions: admin or manager role required')
+      }
+
+      const updateData: any = {
+        updatedAt: Timestamp.now(),
+      }
+
+      // Only add phoneNumber if it's provided, otherwise remove it
+      if (phoneNumber && phoneNumber.trim()) {
+        updateData.phoneNumber = phoneNumber.trim()
+      } else {
+        // Remove phoneNumber field if empty
+        updateData.phoneNumber = null
+      }
+
+      await updateDoc(doc(db, 'users', userId), updateData)
+    } catch (error: any) {
+      throw new Error(`Failed to update user phone number: ${error.message}`)
     }
   },
 

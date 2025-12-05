@@ -129,13 +129,54 @@ pnpm install
 3. Set up environment variables:
 Create a `.env.local` file in the root directory:
 ```env
+# Firebase Configuration
 NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
 NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+
+# Gmail SMTP Configuration (for email sending)
+GMAIL_USER=your-email@gmail.com
+GMAIL_APP_PASSWORD=your-16-character-app-password
+
+# Meta WhatsApp Cloud API Configuration (for WhatsApp notifications)
+META_WHATSAPP_ACCESS_TOKEN=your-meta-access-token
+META_WHATSAPP_PHONE_NUMBER_ID=your-phone-number-id
+META_WHATSAPP_API_VERSION=v18.0
 ```
+
+**Gmail Setup Instructions:**
+1. Enable 2-Step Verification on your Google account: https://myaccount.google.com/security
+2. Generate an App Password:
+   - Go to https://myaccount.google.com/apppasswords
+   - Select "Mail" and "Other (Custom name)" → Enter "Malar CRM"
+   - Copy the 16-character password (no spaces)
+   - Add it to `GMAIL_APP_PASSWORD` in your `.env.local` file
+3. Use your full Gmail address for `GMAIL_USER`
+
+**Meta WhatsApp Cloud API Setup Instructions:**
+1. Create a Meta Business Account: https://business.facebook.com
+2. Set up a Meta App:
+   - Go to https://developers.facebook.com/apps
+   - Create a new app or use existing app
+   - Add "WhatsApp" product to your app
+3. Get your credentials:
+   - **Access Token**: 
+     - Go to WhatsApp → API Setup in Meta for Developers
+     - Copy the temporary access token (for testing)
+     - For production, generate a permanent token with proper permissions
+   - **Phone Number ID**:
+     - Found in WhatsApp → API Setup
+     - This is the ID of your WhatsApp Business phone number
+   - **API Version**: Use `v18.0` (or latest version)
+4. Add credentials to your `.env.local` file:
+   - `META_WHATSAPP_ACCESS_TOKEN`: Your Meta access token
+   - `META_WHATSAPP_PHONE_NUMBER_ID`: Your phone number ID
+   - `META_WHATSAPP_API_VERSION`: API version (default: `v18.0`)
+5. For testing: Use Meta's test numbers or verify your business number
+6. For production: Complete business verification and get approved phone number
 
 4. Run the development server:
 ```bash

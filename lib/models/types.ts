@@ -2,6 +2,7 @@ export interface User {
   id: string
   email: string
   displayName: string
+  phoneNumber?: string // WhatsApp phone number in international format (+1234567890)
   role: 'admin' | 'manager' | 'user' | 'customer'
   isBlocked: boolean
   createdAt: Date

@@ -118,7 +118,7 @@ export default function ProductsPage() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <p className="text-muted-foreground">Price</p>
-                  <p className="font-semibold">${product.price.toFixed(2)}</p>
+                  <p className="font-semibold">₹{product.price.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Stock</p>
