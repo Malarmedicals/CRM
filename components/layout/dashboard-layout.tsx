@@ -92,14 +92,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Header */}
       <div className="px-3 py-4 border-b border-sidebar-border flex items-center justify-between h-16 shrink-0">
         {(sidebarOpen || isMobile) ? (
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <span className="font-bold text-primary">M</span>
+          <div className="flex items-center gap-3 px-2 w-full justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <span className="font-bold text-primary">M</span>
+              </div>
+              <h1 className="text-xl font-bold text-sidebar-foreground animate-in fade-in duration-300">Malar CRM</h1>
             </div>
-            <h1 className="text-xl font-bold text-sidebar-foreground animate-in fade-in duration-300">Malar CRM</h1>
+            {!isMobile && (
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         ) : (
-          <div className="w-full h-6" /> // Empty placeholder to maintain height
+          <div className="w-full flex justify-center">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </div>
         )}
       </div>
 
