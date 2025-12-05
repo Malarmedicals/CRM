@@ -6,6 +6,7 @@ import { productService } from '@/lib/services/product-service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertCircle, Plus, Trash2, GripVertical } from 'lucide-react'
 
 interface ProductFormProps {
@@ -18,18 +19,18 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
   // Helper to safely convert date from Firestore or other formats
   const convertToDate = (date: any): Date => {
     if (!date) return new Date()
-    
+
     try {
       // Handle Firestore Timestamp
       if (date && typeof date.toDate === 'function') {
         return date.toDate()
       }
-      
+
       // Handle Date object
       if (date instanceof Date) {
         return isNaN(date.getTime()) ? new Date() : date
       }
-      
+
       // Handle string or number
       const dateObj = new Date(date)
       return isNaN(dateObj.getTime()) ? new Date() : dateObj
@@ -80,6 +81,13 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     unit: 'per-piece',
   })
   const [materialInput, setMaterialInput] = useState('')
+  const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false)
+  const [newCategory, setNewCategory] = useState({
+    type: 'main',
+    prefix: '',
+    name: '',
+    logo: null as File | null
+  })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -88,15 +96,15 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       [name]: ['price', 'discount', 'stockQuantity', 'gstRate', 'freeShippingThreshold'].includes(name)
         ? parseFloat(value)
         : name === 'expiryDate'
-        ? new Date(value)
-        : value,
+          ? new Date(value)
+          : value,
     }))
   }
 
   // Helper function to safely format date for input
   const formatDateForInput = (date: any): string => {
     if (!date) return ''
-    
+
     try {
       // Handle Firestore Timestamp
       if (date && typeof date.toDate === 'function') {
@@ -104,13 +112,13 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
         if (isNaN(jsDate.getTime())) return ''
         return jsDate.toISOString().split('T')[0]
       }
-      
+
       // Handle Date object
       if (date instanceof Date) {
         if (isNaN(date.getTime())) return ''
         return date.toISOString().split('T')[0]
       }
-      
+
       // Handle string or number
       const dateObj = new Date(date)
       if (isNaN(dateObj.getTime())) return ''
@@ -359,13 +367,25 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
 
               <div>
                 <label className="block text-sm font-medium mb-2">Category *</label>
-                <Input
-                  name="category"
-                  value={formData.category || ''}
-                  onChange={handleInputChange}
-                  placeholder="Enter category"
-                  required
-                />
+                <div className="flex gap-2">
+                  <Input
+                    name="category"
+                    value={formData.category || ''}
+                    onChange={handleInputChange}
+                    placeholder="Enter category"
+                    required
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddCategoryDialog(true)}
+                    className="whitespace-nowrap"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add New
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -699,6 +719,110 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
           </div>
         </form>
       </Card>
+
+      {/* Add New Category Dialog */}
+      <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Category</DialogTitle>
+            <DialogDescription>
+              Create a new product category with prefix and optional logo
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Category Type</label>
+              <select
+                value={newCategory.type}
+                onChange={(e) => setNewCategory({ ...newCategory, type: e.target.value })}
+                className="w-full px-3 py-2 border border-input rounded-lg bg-background"
+              >
+                <option value="main">Main Category</option>
+                <option value="sub">Sub Category</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Category Prefix (e.g., SM) *
+              </label>
+              <Input
+                value={newCategory.prefix}
+                onChange={(e) => setNewCategory({ ...newCategory, prefix: e.target.value })}
+                placeholder="e.g., SM"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                {newCategory.type === 'main' ? 'Main' : 'Sub'} Category Name *
+              </label>
+              <Input
+                value={newCategory.name}
+                onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                placeholder="e.g., Automation Solutions"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Category Logo (Optional)
+              </label>
+              <div className="space-y-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    setNewCategory({ ...newCategory, logo: file })
+                  }}
+                  className="cursor-pointer"
+                />
+                {newCategory.logo && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>Selected: {newCategory.logo.name}</span>
+                  </div>
+                )}
+                {!newCategory.logo && (
+                  <p className="text-xs text-muted-foreground">No image selected</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowAddCategoryDialog(false)
+                setNewCategory({ type: 'main', prefix: '', name: '', logo: null })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                // Add the category to the form
+                if (newCategory.prefix && newCategory.name) {
+                  const categoryValue = `${newCategory.prefix} - ${newCategory.name}`
+                  setFormData({ ...formData, category: categoryValue })
+                  setShowAddCategoryDialog(false)
+                  setNewCategory({ type: 'main', prefix: '', name: '', logo: null })
+                }
+              }}
+              disabled={!newCategory.prefix || !newCategory.name}
+              className="bg-yellow-400 hover:bg-yellow-500 text-black"
+            >
+              Add Category
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

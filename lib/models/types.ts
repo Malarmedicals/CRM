@@ -71,9 +71,12 @@ export interface Category {
 export interface Order {
   id: string
   userId: string
+  customerName?: string
+  customerPhone?: string
   products: OrderItem[]
   totalAmount: number
-  status: 'pending' | 'processing' | 'dispatched' | 'delivered' | 'cancelled'
+  status: 'pending' | 'shipped' | 'delivered' | 'cancelled' // Payment Status
+  deliveryStatus?: 'packing' | 'shipped' | 'delivered'
   prescriptionVerified: boolean
   dispatchTracking?: string
   createdAt: Date
@@ -83,6 +86,7 @@ export interface Order {
 export interface OrderItem {
   productId: string
   productName: string
+  category?: string
   quantity: number
   price: number
 }
@@ -109,4 +113,16 @@ export interface CRMAlert {
   severity: 'info' | 'warning' | 'critical'
   resolved: boolean
   createdAt: Date
+}
+
+export interface Banner {
+  id: string
+  title: string
+  image: string
+  mobileImage?: string
+  link: string
+  seoDescription: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
 }

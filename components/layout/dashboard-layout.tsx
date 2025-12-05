@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { BarChart3, Package, Users, ShoppingCart, Filter, Mail, LogOut, Menu, X, User, MoreVertical } from 'lucide-react'
+import { BarChart3, Package, Users, ShoppingCart, Filter, Mail, LogOut, Menu, X, User, MoreVertical, ChevronDown } from 'lucide-react'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -29,6 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [user, setUser] = useState<any>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -80,10 +81,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    { href: '/dashboard/products', label: 'Products', icon: Package },
+    {
+      label: 'Content Management',
+      icon: Package,
+      subItems: [
+        { href: '/dashboard/products', label: 'Product Management' },
+        { href: '/dashboard/banners/add', label: 'Add Banner' },
+      ]
+    },
     { href: '/dashboard/users', label: 'Users', icon: Users },
     { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
-    { href: '/dashboard/leads', label: 'Leads', icon: Filter },
     { href: '/dashboard/crm', label: 'CRM Tools', icon: Mail },
   ]
 
@@ -118,8 +125,72 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon
+          // @ts-ignore
+          const hasSubItems = item.subItems && item.subItems.length > 0
+          const isSubmenuOpen = openSubmenu === item.label
+
+          if (hasSubItems) {
+            return (
+              <div
+                key={item.label}
+                onMouseEnter={() => {
+                  setOpenSubmenu(item.label)
+                  if (!sidebarOpen && !isMobile) {
+                    setSidebarOpen(true)
+                  }
+                }}
+                onMouseLeave={() => setOpenSubmenu(null)}
+              >
+                <button
+                  onClick={() => {
+                    if (openSubmenu === item.label) {
+                      setOpenSubmenu(null)
+                    } else {
+                      setOpenSubmenu(item.label)
+                      if (!sidebarOpen && !isMobile) {
+                        setSidebarOpen(true)
+                      }
+                    }
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${sidebarOpen || isMobile
+                    ? 'hover:bg-sidebar-accent text-sidebar-foreground'
+                    : 'justify-center hover:bg-sidebar-accent text-sidebar-foreground'
+                    }`}
+                >
+                  <Icon className={`h-5 w-5 transition-colors ${sidebarOpen || isMobile ? '' : 'h-6 w-6'}`} />
+                  {(sidebarOpen || isMobile) && (
+                    <>
+                      <span className="font-medium animate-in fade-in slide-in-from-left-2 duration-300 flex-1 text-left">
+                        {item.label}
+                      </span>
+                      <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubmenuOpen ? 'rotate-180' : ''}`} />
+                    </>
+                  )}
+                </button>
+
+                {/* Submenu Items */}
+                {isSubmenuOpen && (sidebarOpen || isMobile) && (
+                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-sidebar-border pl-2 animate-in slide-in-from-top-2 duration-200">
+                    {/* @ts-ignore */}
+                    {item.subItems.map((subItem: any) => (
+                      <Link
+                        key={subItem.href}
+                        href={subItem.href}
+                        onClick={() => isMobile && setIsMobileOpen(false)}
+                      >
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors">
+                          {subItem.label}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
           return (
-            <Link key={item.href} href={item.href} onClick={() => isMobile && setIsMobileOpen(false)}>
+            <Link key={item.href} href={item.href!} onClick={() => isMobile && setIsMobileOpen(false)}>
               <div className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${sidebarOpen || isMobile
                 ? 'hover:bg-sidebar-accent text-sidebar-foreground'
                 : 'justify-center hover:bg-sidebar-accent text-sidebar-foreground'
