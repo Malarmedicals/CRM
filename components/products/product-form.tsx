@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Product, ProductDetail, ColorVariant, Material } from '@/lib/models/types'
 import { productService } from '@/lib/services/product-service'
 import { Button } from '@/components/ui/button'
@@ -88,6 +89,20 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     name: '',
     logo: null as File | null
   })
+  const [categories, setCategories] = useState<string[]>([])
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const allProducts = await productService.getAllProducts()
+        const uniqueCategories = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean)))
+        setCategories(uniqueCategories.sort())
+      } catch (error) {
+        console.error('Failed to load categories', error)
+      }
+    }
+    loadCategories()
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -243,6 +258,36 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
             <h3 className="text-lg font-semibold">Basic Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium mb-2">Category *</label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger className="flex-1 w-full border-input bg-background">
+                      <SelectValue placeholder="Select Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddCategoryDialog(true)}
+                    className="whitespace-nowrap bg-background"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add New
+                  </Button>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Product Name *</label>
                 <Input
                   name="name"
@@ -365,28 +410,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Category *</label>
-                <div className="flex gap-2">
-                  <Input
-                    name="category"
-                    value={formData.category || ''}
-                    onChange={handleInputChange}
-                    placeholder="Enter category"
-                    required
-                    className="flex-1"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowAddCategoryDialog(true)}
-                    className="whitespace-nowrap"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add New
-                  </Button>
-                </div>
-              </div>
+
 
               <div>
                 <label className="block text-sm font-medium mb-2">Batch Number *</label>
@@ -811,6 +835,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 if (newCategory.prefix && newCategory.name) {
                   const categoryValue = `${newCategory.prefix} - ${newCategory.name}`
                   setFormData({ ...formData, category: categoryValue })
+                  setCategories((prev) => [...prev, categoryValue].sort())
                   setShowAddCategoryDialog(false)
                   setNewCategory({ type: 'main', prefix: '', name: '', logo: null })
                 }

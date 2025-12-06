@@ -162,6 +162,14 @@ export interface Banner {
   link: string
   seoDescription: string
   isActive: boolean
+  mainCategory?: string
+  categoryTag?: string
+  showCategoryTag?: boolean
+  priceDisplay?: string
+  description?: string
+  seoTitle?: string
+  linkProductId?: string
+  bannerType?: 'Single Banner' | 'Grid' | 'Slider'
   createdAt: Date
   updatedAt: Date
 }
