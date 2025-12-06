@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Eye, RefreshCw, Calendar, User, Package, CheckCircle, Clock, Edit, Save, X, CreditCard, Lock } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Search, Eye, RefreshCw, Calendar, User, Package, CheckCircle, Clock, Edit, Save, X, CreditCard, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function OrdersPage() {
@@ -22,6 +23,9 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
   const [editFormData, setEditFormData] = useState<Partial<Order>>({})
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([])
 
   useEffect(() => {
     loadOrders()
@@ -46,7 +50,7 @@ export default function OrdersPage() {
       const matchesSearch = orderId.includes(search) || userId.includes(search) || customerName.includes(search) || customerPhone.includes(search)
 
       if (statusFilter === 'all') return matchesSearch
-      return matchesSearch && order.status === statusFilter
+      return matchesSearch && order.deliveryStatus === statusFilter
     })
     setFilteredOrders(filtered)
   }, [searchTerm, orders, statusFilter])
@@ -90,25 +94,87 @@ export default function OrdersPage() {
     setEditFormData({})
   }
 
-  const getPaymentStatusBadge = (status: string) => {
-    const variants: Record<string, { label: string; className: string }> = {
-      pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-      shipped: { label: 'Shipped', className: 'bg-purple-100 text-purple-800 border-purple-300' },
-      delivered: { label: 'Delivered', className: 'bg-green-100 text-green-800 border-green-300' },
-      cancelled: { label: 'Cancelled', className: 'bg-red-100 text-red-800 border-red-300' },
+  const handleDeleteClick = (orderId: string) => {
+    setOrderToDelete(orderId)
+    setShowDeleteDialog(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    // Handle bulk delete if multiple orders selected
+    if (selectedOrders.length > 0) {
+      await handleBulkDeleteConfirm()
+      return
     }
-    const config = variants[status] || { label: 'Unknown', className: 'bg-gray-100 text-gray-800 border-gray-300' }
-    return <Badge className={`${config.className} border text-xs`}>{config.label}</Badge>
+
+    // Handle single order delete
+    if (!orderToDelete) return
+
+    try {
+      await orderService.deleteOrder(orderToDelete)
+      await loadOrders()
+      toast.success('Order deleted successfully')
+      setShowDeleteDialog(false)
+      setOrderToDelete(null)
+    } catch (error) {
+      console.error('Failed to delete order:', error)
+      toast.error('Failed to delete order')
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteDialog(false)
+    setOrderToDelete(null)
+  }
+
+  const handleSelectOrder = (orderId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(prev => [...prev, orderId])
+    } else {
+      setSelectedOrders(prev => prev.filter(id => id !== orderId))
+    }
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedOrders(filteredOrders.map(order => order.id))
+    } else {
+      setSelectedOrders([])
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedOrders.length === 0) return
+    setShowDeleteDialog(true)
+  }
+
+  const handleBulkDeleteConfirm = async () => {
+    try {
+      // Delete all selected orders
+      const deletePromises = selectedOrders.map(orderId =>
+        orderService.deleteOrder(orderId)
+      )
+      await Promise.all(deletePromises)
+
+      await loadOrders()
+      toast.success(`${selectedOrders.length} order(s) deleted successfully`)
+      setShowDeleteDialog(false)
+      setOrderToDelete(null)
+      setSelectedOrders([])
+    } catch (error) {
+      console.error('Failed to delete orders:', error)
+      toast.error('Failed to delete orders')
+    }
   }
 
   const getDeliveryStatusBadge = (deliveryStatus?: string) => {
-    const status = deliveryStatus || 'packing'
+    const status = deliveryStatus || 'pending'
     const variants: Record<string, { label: string; className: string; icon: string }> = {
+      pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: '⏰' },
       packing: { label: 'Packing', className: 'bg-orange-100 text-orange-800 border-orange-300', icon: '📦' },
       shipped: { label: 'Shipped', className: 'bg-blue-100 text-blue-800 border-blue-300', icon: '🚚' },
       delivered: { label: 'Delivered', className: 'bg-green-100 text-green-800 border-green-300', icon: '✅' },
     }
-    const config = variants[status] || variants.packing
+    const config = variants[status] || variants.pending
     return (
       <Badge className={`${config.className} border text-xs flex items-center gap-1 w-fit`}>
         <span>{config.icon}</span>
@@ -119,9 +185,9 @@ export default function OrdersPage() {
 
   const statusCounts = {
     all: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    shipped: orders.filter(o => o.status === 'shipped').length,
-    delivered: orders.filter(o => o.status === 'delivered').length,
+    pending: orders.filter(o => (o.deliveryStatus || 'pending') === 'pending').length,
+    shipped: orders.filter(o => o.deliveryStatus === 'shipped').length,
+    delivered: orders.filter(o => o.deliveryStatus === 'delivered').length,
   }
 
   return (
@@ -135,9 +201,24 @@ export default function OrdersPage() {
           <p className="text-muted-foreground mt-1">
             Total Orders: <span className="font-semibold">{orders.length}</span> |
             Showing: <span className="font-semibold">{filteredOrders.length}</span>
+            {selectedOrders.length > 0 && (
+              <span className="ml-2 text-primary font-semibold">
+                | Selected: {selectedOrders.length}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex gap-2">
+          {selectedOrders.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleBulkDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedOrders.length})
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={loadOrders} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -194,11 +275,17 @@ export default function OrdersPage() {
           <table className="w-full">
             <thead className="bg-muted/50 border-b">
               <tr className="text-left text-xs font-semibold uppercase">
+                <th className="p-4 whitespace-nowrap w-12">
+                  <Checkbox
+                    checked={selectedOrders.length === filteredOrders.length && filteredOrders.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </th>
                 <th className="p-4 whitespace-nowrap">Order ID & Date</th>
                 <th className="p-4 whitespace-nowrap">Customer</th>
                 <th className="p-4 whitespace-nowrap">Products</th>
                 <th className="p-4 whitespace-nowrap">Amount</th>
-                <th className="p-4 whitespace-nowrap">Payment Status</th>
+                <th className="p-4 whitespace-nowrap">Payment Method</th>
                 <th className="p-4 whitespace-nowrap">Delivery Status</th>
                 <th className="p-4 whitespace-nowrap">Prescription</th>
                 <th className="p-4 whitespace-nowrap">Actions</th>
@@ -211,8 +298,19 @@ export default function OrdersPage() {
                 return (
                   <tr
                     key={order.id}
-                    className={`border-b hover:bg-muted/30 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/10'}`}
+                    className={`border-b hover:bg-muted/30 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/10'
+                      } ${selectedOrders.includes(order.id) ? 'bg-blue-50' : ''
+                      } ${order.status === 'cancelled' ? 'opacity-60 bg-gray-50' : ''
+                      }`}
                   >
+                    {/* Checkbox */}
+                    <td className="p-4">
+                      <Checkbox
+                        checked={selectedOrders.includes(order.id)}
+                        onCheckedChange={(checked) => handleSelectOrder(order.id, checked as boolean)}
+                      />
+                    </td>
+
                     {/* Order ID & Date */}
                     <td className="p-4">
                       <div>
@@ -268,19 +366,23 @@ export default function OrdersPage() {
                       <div className="space-y-1">
                         {order.products && order.products.length > 0 ? (
                           order.products.slice(0, 2).map((product, idx) => (
-                            <div key={idx} className="flex items-center gap-1">
-                              <Package className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs">
-                                {product.productName}
-                                <span className="text-muted-foreground ml-1">(Qty: {product.quantity})</span>
-                              </span>
+                            <div key={idx} className="flex items-start gap-1">
+                              <Package className="h-3 w-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium">
+                                  {product.name || product.productName || 'Unknown Product'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Qty: {product.quantity || 0}
+                                </span>
+                              </div>
                             </div>
                           ))
                         ) : (
                           <span className="text-xs text-muted-foreground">No products</span>
                         )}
                         {order.products && order.products.length > 2 && (
-                          <p className="text-xs text-muted-foreground">+{order.products.length - 2} more</p>
+                          <p className="text-xs text-muted-foreground mt-1">+{order.products.length - 2} more</p>
                         )}
                       </div>
                     </td>
@@ -292,12 +394,20 @@ export default function OrdersPage() {
                       </p>
                     </td>
 
-                    {/* Payment Status - READ ONLY */}
+                    {/* Payment Method - READ ONLY */}
                     <td className="p-4">
-                      <div className="flex items-center gap-1">
-                        {getPaymentStatusBadge(order.status)}
-                        {isEditing && (
-                          <Lock className="h-3 w-3 text-muted-foreground" />
+                      <div className="flex flex-col gap-1">
+                        {order.status === 'cancelled' ? (
+                          <Badge className="bg-red-100 text-red-800 border-red-300 border text-xs w-fit">
+                            ❌ Cancelled
+                          </Badge>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              {order.paymentMethod || 'N/A'}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </td>
@@ -306,13 +416,14 @@ export default function OrdersPage() {
                     <td className="p-4">
                       {isEditing ? (
                         <Select
-                          value={editFormData.deliveryStatus || order.deliveryStatus || 'packing'}
+                          value={editFormData.deliveryStatus || order.deliveryStatus || 'pending'}
                           onValueChange={(value) => setEditFormData({ ...editFormData, deliveryStatus: value as any })}
                         >
                           <SelectTrigger className="w-32 h-8 text-xs">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="pending">⏰ Pending</SelectItem>
                             <SelectItem value="packing">📦 Packing</SelectItem>
                             <SelectItem value="shipped">🚚 Shipped</SelectItem>
                             <SelectItem value="delivered">✅ Delivered</SelectItem>
@@ -399,6 +510,15 @@ export default function OrdersPage() {
                               <Edit className="h-3 w-3" />
                               Edit
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-xs h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteClick(order.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              Delete
+                            </Button>
                           </>
                         )}
                       </div>
@@ -444,12 +564,11 @@ export default function OrdersPage() {
                 <Card className="p-4">
                   <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                     <CreditCard className="h-3 w-3" />
-                    Payment
+                    Payment Method
                   </p>
-                  <div className="flex items-center gap-1">
-                    {getPaymentStatusBadge(selectedOrder.status)}
-                    <Lock className="h-3 w-3 text-muted-foreground" />
-                  </div>
+                  <p className="text-sm font-medium">
+                    {selectedOrder.paymentMethod || 'N/A'}
+                  </p>
                 </Card>
                 <Card className="p-4">
                   <p className="text-xs text-muted-foreground mb-1">Delivery</p>
@@ -492,7 +611,7 @@ export default function OrdersPage() {
                   {selectedOrder.products?.map((item, index) => (
                     <div key={index} className="flex items-start justify-between p-3 bg-muted/30 rounded-lg">
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{item.productName}</p>
+                        <p className="font-medium text-sm">{item.name || item.productName || 'Unknown Product'}</p>
                         {item.category && (
                           <Badge variant="outline" className="text-xs mt-1">
                             {item.category}
@@ -518,6 +637,30 @@ export default function OrdersPage() {
               </Card>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Order{selectedOrders.length > 1 ? 's' : ''}</DialogTitle>
+            <DialogDescription>
+              {selectedOrders.length > 0 ? (
+                `Are you sure you want to delete ${selectedOrders.length} selected order(s)? This action cannot be undone.`
+              ) : (
+                'Are you sure you want to delete this order? This action cannot be undone.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

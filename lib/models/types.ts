@@ -3,7 +3,7 @@ export interface User {
   email: string
   displayName: string
   phoneNumber?: string // WhatsApp phone number in international format (+1234567890)
-  role: 'admin' | 'manager' | 'user' | 'customer'
+  role: 'admin' | 'manager' | 'customer'
   isBlocked: boolean
   createdAt: Date
   updatedAt: Date
@@ -20,6 +20,9 @@ export interface Product {
   batchNumber: string
   expiryDate: Date
   stockQuantity: number
+  minStockLevel?: number // Reorder point
+  maxStockLevel?: number // Maximum capacity
+  reorderQuantity?: number // Auto-reorder quantity
   images: string[]
   primaryImage?: string
   additionalImages?: string[]
@@ -34,6 +37,9 @@ export interface Product {
   stockStatus?: 'in-stock' | 'low-stock' | 'out-of-stock'
   estimatedDelivery?: string
   freeShippingThreshold?: number
+  batches?: ProductBatch[]
+  lastRestocked?: Date
+  averageMonthlySales?: number
   createdAt: Date
   updatedAt: Date
 }
@@ -58,6 +64,36 @@ export interface Material {
   materialName: string
 }
 
+export interface ProductBatch {
+  id: string
+  batchNumber: string
+  quantity: number
+  manufactureDate: Date
+  expiryDate: Date
+  supplier: string
+  costPrice: number
+  receivedDate: Date
+  location?: string // warehouse/shelf location
+  createdAt: Date
+}
+
+export interface StockMovement {
+  id: string
+  productId: string
+  productName: string
+  type: 'in' | 'out' | 'adjustment' | 'expired' | 'returned' | 'damaged'
+  quantity: number
+  batchNumber?: string
+  reason: string
+  orderId?: string // if related to an order
+  performedBy: string
+  performedByName?: string
+  previousStock: number
+  newStock: number
+  timestamp: Date
+  notes?: string
+}
+
 export interface Category {
   id: string
   name: string
@@ -76,7 +112,8 @@ export interface Order {
   products: OrderItem[]
   totalAmount: number
   status: 'pending' | 'shipped' | 'delivered' | 'cancelled' // Payment Status
-  deliveryStatus?: 'packing' | 'shipped' | 'delivered'
+  paymentMethod?: string // Payment method from ecommerce platform
+  deliveryStatus?: 'pending' | 'packing' | 'shipped' | 'delivered'
   prescriptionVerified: boolean
   dispatchTracking?: string
   createdAt: Date
@@ -85,10 +122,12 @@ export interface Order {
 
 export interface OrderItem {
   productId: string
-  productName: string
+  name: string // Product name in database
+  productName?: string // Legacy field for backward compatibility
   category?: string
   quantity: number
   price: number
+  image?: string | null
 }
 
 export interface Lead {

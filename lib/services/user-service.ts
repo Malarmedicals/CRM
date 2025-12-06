@@ -2,6 +2,7 @@ import {
   collection,
   getDocs,
   updateDoc,
+  deleteDoc,
   doc,
   query,
   where,
@@ -48,7 +49,7 @@ export const userService = {
           await setDoc(doc(db, 'users', currentUser.uid), {
             email: currentUser.email || '',
             displayName: currentUser.displayName || '',
-            role: isFirstUser ? 'admin' : 'user',
+            role: isFirstUser ? 'admin' : 'customer',
             isBlocked: false,
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
@@ -92,21 +93,26 @@ export const userService = {
         const data = doc.data()
 
         // Helper function to safely normalize role
-        const safeNormalizeRole = (role: any): 'admin' | 'manager' | 'user' | 'customer' => {
+        const safeNormalizeRole = (role: any): 'admin' | 'manager' | 'customer' => {
           if (!role) {
             console.warn(`[DEBUG] User ${doc.id} has missing or undefined role field`)
-            return 'user'
+            return 'customer'
           }
           if (typeof role !== 'string') {
             console.warn(`[DEBUG] User ${doc.id} has invalid role type:`, typeof role, role)
-            return 'user'
+            return 'customer'
           }
           const normalized = role.toLowerCase().trim()
-          if (normalized === 'admin' || normalized === 'manager' || normalized === 'user' || normalized === 'customer') {
-            return normalized as 'admin' | 'manager' | 'user' | 'customer'
+          if (normalized === 'admin' || normalized === 'manager' || normalized === 'customer') {
+            return normalized as 'admin' | 'manager' | 'customer'
           }
-          console.warn(`[DEBUG] User ${doc.id} has invalid role value:`, role, '-> normalized to user')
-          return 'user'
+          // Convert old 'user' role to 'customer'
+          if (normalized === 'user') {
+            console.warn(`[DEBUG] User ${doc.id} has deprecated 'user' role -> converting to 'customer'`)
+            return 'customer'
+          }
+          console.warn(`[DEBUG] User ${doc.id} has invalid role value:`, role, '-> normalized to customer')
+          return 'customer'
         }
 
         // Safely handle all fields with defaults
@@ -114,7 +120,7 @@ export const userService = {
         const normalizedRole = safeNormalizeRole(roleValue)
 
         // Debug log if role was missing or invalid
-        if (!roleValue || typeof roleValue !== 'string' || normalizedRole === 'user' && roleValue.toLowerCase() !== 'user') {
+        if (!roleValue || typeof roleValue !== 'string' || normalizedRole === 'customer' && roleValue.toLowerCase() === 'user') {
           console.warn(`[DEBUG] User document ${doc.id}:`, {
             userId: doc.id,
             email: data?.email || 'missing',
@@ -160,7 +166,7 @@ export const userService = {
         await setDoc(doc(db, 'users', currentUser.uid), {
           email: currentUser.email || '',
           displayName: currentUser.displayName || '',
-          role: isFirstUser ? 'admin' : 'user',
+          role: isFirstUser ? 'admin' : 'customer',
           isBlocked: false,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
@@ -217,7 +223,7 @@ export const userService = {
         await setDoc(doc(db, 'users', currentUser.uid), {
           email: currentUser.email || '',
           displayName: currentUser.displayName || '',
-          role: isFirstUser ? 'admin' : 'user',
+          role: isFirstUser ? 'admin' : 'customer',
           isBlocked: false,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),
@@ -251,6 +257,75 @@ export const userService = {
       await updateDoc(doc(db, 'users', userId), updateData)
     } catch (error: any) {
       throw new Error(`Failed to update user phone number: ${error.message}`)
+    }
+  },
+
+  // Update user role (Admin only)
+  async updateUserRole(userId: string, role: 'admin' | 'manager' | 'customer'): Promise<void> {
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        throw new Error('User not authenticated')
+      }
+
+      // Check if current user is admin
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+      if (!userDoc.exists()) {
+        throw new Error('User document not found')
+      }
+
+      const userData = userDoc.data()
+      const roleValue = userData?.role
+      const userRole = roleValue && typeof roleValue === 'string'
+        ? (roleValue || '').toLowerCase().trim()
+        : ''
+
+      if (userRole !== 'admin') {
+        throw new Error('Insufficient permissions: admin role required to change user roles')
+      }
+
+      await updateDoc(doc(db, 'users', userId), {
+        role,
+        updatedAt: Timestamp.now(),
+      })
+    } catch (error: any) {
+      throw new Error(`Failed to update user role: ${error.message}`)
+    }
+  },
+
+  // Delete user (Admin only)
+  async deleteUser(userId: string): Promise<void> {
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) {
+        throw new Error('User not authenticated')
+      }
+
+      // Prevent self-deletion
+      if (currentUser.uid === userId) {
+        throw new Error('You cannot delete your own account')
+      }
+
+      // Check if current user is admin
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid))
+      if (!userDoc.exists()) {
+        throw new Error('User document not found')
+      }
+
+      const userData = userDoc.data()
+      const roleValue = userData?.role
+      const userRole = roleValue && typeof roleValue === 'string'
+        ? (roleValue || '').toLowerCase().trim()
+        : ''
+
+      if (userRole !== 'admin') {
+        throw new Error('Insufficient permissions: admin role required to delete users')
+      }
+
+      // Delete the user document
+      await deleteDoc(doc(db, 'users', userId))
+    } catch (error: any) {
+      throw new Error(`Failed to delete user: ${error.message}`)
     }
   },
 
@@ -288,7 +363,7 @@ export const userService = {
         await setDoc(doc(db, 'users', currentUser.uid), {
           email: currentUser.email || '',
           displayName: currentUser.displayName || '',
-          role: isFirstUser ? 'admin' : 'user',
+          role: isFirstUser ? 'admin' : 'customer',
           isBlocked: false,
           createdAt: Timestamp.now(),
           updatedAt: Timestamp.now(),

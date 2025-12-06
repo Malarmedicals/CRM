@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { BarChart3, Package, Users, ShoppingCart, Filter, Mail, LogOut, Menu, X, User, MoreVertical, ChevronDown } from 'lucide-react'
+import { BarChart3, Package, Users, ShoppingCart, Filter, Mail, LogOut, Menu, X, User, MoreVertical, ChevronDown, Warehouse } from 'lucide-react'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -89,6 +89,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         { href: '/dashboard/banners/add', label: 'Add Banner' },
       ]
     },
+    { href: '/dashboard/inventory', label: 'Inventory', icon: Warehouse },
     { href: '/dashboard/users', label: 'Users', icon: Users },
     { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
     { href: '/dashboard/crm', label: 'CRM Tools', icon: Mail },
