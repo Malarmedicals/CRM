@@ -115,5 +115,15 @@ service cloud.firestore {
     match /whatsappQueue/{messageId} {
       allow read, write: if isAdminOrManager();
     }
+
+    // Calendar Events collection: Public access for development
+    match /events/{eventId} {
+      allow read, write: if true;
+    }
+
+    // Notifications collection: Public access for development (Admin only in prod)
+    match /notifications/{notificationId} {
+      allow read, write: if true;
+    }
   }
 }

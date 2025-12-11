@@ -1,12 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
 import { productService } from '@/features/products/product-service'
 import { orderService } from '@/features/orders/order-service'
 import { auth } from '@/lib/firebase'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { AlertCircle, TrendingUp, Users, Package } from 'lucide-react'
+import { DashboardKPICard } from '@/components/dashboard/dashboard-kpi-card'
+import {
+  SalesOverviewChart,
+  RevenueBreakdownChart,
+  TopSellingChart
+} from '@/components/dashboard/dashboard-charts'
+import {
+  ExpiringMedicinesWidget,
+  PendingApprovalsWidget,
+  DeliveryPerformanceWidget
+} from '@/components/dashboard/dashboard-widgets'
+import {
+  ShoppingBag,
+  DollarSign,
+  Truck,
+  AlertOctagon,
+  PackageX
+} from 'lucide-react'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -15,7 +30,12 @@ export default function DashboardPage() {
     expiringCount: 0,
     totalOrders: 0,
     totalSales: 0,
+    pendingShipments: 0,
   })
+  const [salesData, setSalesData] = useState<{ name: string; value: number }[]>([])
+  const [categoryData, setCategoryData] = useState<{ name: string; value: number }[]>([])
+  const [topProducts, setTopProducts] = useState<{ name: string; sales: number }[]>([])
+  const [expiringMedicines, setExpiringMedicines] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -27,7 +47,11 @@ export default function DashboardPage() {
           const expiring = await productService.getExpiringProducts()
           const orders = await orderService.getAllOrders()
 
+          // Calculate Stats
           const totalSales = orders.reduce((sum, order) => sum + order.totalAmount, 0)
+          const pendingShipments = orders.filter(
+            order => order.deliveryStatus !== 'delivered' && order.status !== 'cancelled'
+          ).length
 
           setStats({
             totalProducts: products.length,
@@ -35,7 +59,92 @@ export default function DashboardPage() {
             expiringCount: expiring.length,
             totalOrders: orders.length,
             totalSales,
+            pendingShipments,
           })
+
+          // Process Sales Overview (Last 30 Days)
+          const last30Days = [...Array(30)].map((_, i) => {
+            const d = new Date()
+            d.setDate(d.getDate() - (29 - i))
+            return d.toISOString().split('T')[0]
+          })
+
+          const salesMap = new Map<string, number>()
+          orders.forEach(order => {
+            const date = order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : ''
+            if (date && salesMap.has(date)) {
+              salesMap.set(date, salesMap.get(date)! + order.totalAmount)
+            } else if (date) {
+              salesMap.set(date, order.totalAmount)
+            }
+          })
+
+          const processedSalesData = last30Days.map(date => ({
+            name: date.split('-')[2], // Day only
+            value: salesMap.get(date) || 0
+          }))
+          setSalesData(processedSalesData)
+
+          // Process Revenue by Category
+          const categoryMap = new Map<string, number>()
+          orders.forEach(order => {
+            order.products.forEach(item => {
+              // Try to find category from product list if not in item
+              let category = item.category
+              if (!category) {
+                const product = products.find(p => p.id === item.productId)
+                category = product?.category || 'Uncategorized'
+              }
+
+              const itemTotal = item.price * item.quantity
+              if (categoryMap.has(category)) {
+                categoryMap.set(category, categoryMap.get(category)! + itemTotal)
+              } else {
+                categoryMap.set(category, itemTotal)
+              }
+            })
+          })
+
+          const processedCategoryData = Array.from(categoryMap.entries())
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5) // Top 5 categories
+          setCategoryData(processedCategoryData)
+
+          // Process Top Selling Products
+          const productSalesMap = new Map<string, number>()
+          orders.forEach(order => {
+            order.products.forEach(item => {
+              const productId = item.productId
+              if (productSalesMap.has(productId)) {
+                productSalesMap.set(productId, productSalesMap.get(productId)! + item.quantity)
+              } else {
+                productSalesMap.set(productId, item.quantity)
+              }
+            })
+          })
+
+          const processedTopProducts = Array.from(productSalesMap.entries())
+            .map(([id, sales]) => {
+              const product = products.find(p => p.id === id)
+              return { name: product?.name || 'Unknown Product', sales }
+            })
+            .sort((a, b) => b.sales - a.sales)
+            .slice(0, 5) // Top 5 products
+          setTopProducts(processedTopProducts)
+
+          // Process Expiring Medicines Widget Data
+          const processedExpiring = expiring.slice(0, 5).map(p => {
+            const daysUntilExpiry = Math.ceil((new Date(p.expiryDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+            return {
+              name: p.name,
+              batch: p.batchNumber,
+              expiry: `${daysUntilExpiry} Days`,
+              stock: p.stockQuantity
+            }
+          })
+          setExpiringMedicines(processedExpiring)
+
         } catch (error) {
           console.error('Failed to load stats:', error)
         } finally {
@@ -49,139 +158,81 @@ export default function DashboardPage() {
     return () => unsubscribe()
   }, [])
 
-  const chartData = [
-    { name: 'Jan', sales: 4000, orders: 40 },
-    { name: 'Feb', sales: 3000, orders: 35 },
-    { name: 'Mar', sales: 2000, orders: 20 },
-    { name: 'Apr', sales: 2780, orders: 28 },
-    { name: 'May', sales: 1890, orders: 19 },
-    { name: 'Jun', sales: 2390, orders: 24 },
-  ]
-
-  const categoryData = [
-    { name: 'Tablets', value: 400 },
-    { name: 'Capsules', value: 300 },
-    { name: 'Syrups', value: 200 },
-    { name: 'Injections', value: 150 },
-  ]
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
-
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to your medicine management CRM</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Products</p>
-              <p className="text-2xl font-bold">{stats.totalProducts}</p>
-            </div>
-            <Package className="h-8 w-8 text-primary opacity-50" />
+    <div className="min-h-screen bg-[#F7F9FB] pb-10">
+      <main className="px-6 py-8 space-y-8 max-w-[1600px] mx-auto">
+        {/* Welcome Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h1>
+            <p className="text-slate-500 mt-1">Welcome back, here's what's happening at Malar Medicals today.</p>
           </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Low Stock</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.lowStockCount}</p>
-            </div>
-            <AlertCircle className="h-8 w-8 text-orange-600 opacity-50" />
+          <div className="text-right hidden md:block">
+            <p className="text-sm font-medium text-slate-900">Last updated: {new Date().toLocaleTimeString()}</p>
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Expiring Soon</p>
-              <p className="text-2xl font-bold text-red-600">{stats.expiringCount}</p>
-            </div>
-            <AlertCircle className="h-8 w-8 text-red-600 opacity-50" />
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+          <DashboardKPICard
+            title="Total Orders Today"
+            value={stats.totalOrders}
+            icon={ShoppingBag}
+            trend={{ value: 12, isPositive: true }}
+            color="teal"
+          />
+          <DashboardKPICard
+            title="Revenue Today"
+            value={`₹${stats.totalSales.toLocaleString()}`}
+            icon={DollarSign}
+            trend={{ value: 8, isPositive: true }}
+            color="blue"
+          />
+          <DashboardKPICard
+            title="Pending Shipments"
+            value={stats.pendingShipments}
+            icon={Truck}
+            color="default"
+          />
+          <DashboardKPICard
+            title="Out-of-Stock Alerts"
+            value={stats.lowStockCount}
+            icon={PackageX}
+            color="coral"
+          />
+          <DashboardKPICard
+            title="Low-Batch Expiry"
+            value={stats.expiringCount}
+            icon={AlertOctagon}
+            color="coral"
+          />
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-[400px]">
+            <SalesOverviewChart data={salesData} />
           </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Orders</p>
-              <p className="text-2xl font-bold">{stats.totalOrders}</p>
-            </div>
-            <Users className="h-8 w-8 text-primary opacity-50" />
+          <div className="h-[400px]">
+            <RevenueBreakdownChart data={categoryData} />
           </div>
-        </Card>
+        </div>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Total Sales</p>
-              <p className="text-2xl font-bold">₹{stats.totalSales.toFixed(2)}</p>
-            </div>
-            <TrendingUp className="h-8 w-8 text-green-600 opacity-50" />
+        {/* Widgets Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <TopSellingChart data={topProducts} />
           </div>
-        </Card>
-      </div>
+          <div className="lg:col-span-1">
+            <ExpiringMedicinesWidget medicines={expiringMedicines} />
+          </div>
+          <div className="lg:col-span-1 space-y-6">
+            <PendingApprovalsWidget />
+            <DeliveryPerformanceWidget />
+          </div>
+        </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Sales & Orders Trend</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="sales" stroke="#0088FE" />
-              <Line type="monotone" dataKey="orders" stroke="#00C49F" />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Sales by Category</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name}: ${value}`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
-
-      {/* Daily Sales Chart */}
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold mb-4">Monthly Sales Performance</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="sales" fill="#0088FE" />
-          </BarChart>
-        </ResponsiveContainer>
-      </Card>
+      </main>
     </div>
   )
 }

@@ -1,0 +1,95 @@
+'use client'
+
+import { useState } from 'react';
+import { Bell, CheckCheck, Loader2, PlusCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useNotifications } from '@/features/notifications/use-notifications';
+import { NotificationItem } from './notification-item';
+import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
+
+export function NotificationBell() {
+    const { notifications, unreadCount, loading, markAsRead, markAllAsRead, generateSamples } = useNotifications();
+    const [isOpen, setIsOpen] = useState(false);
+
+    return (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" size="icon" className="rounded-xl border-slate-200 text-slate-600 relative">
+                    <Bell className="h-4 w-4" />
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center ring-2 ring-white">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[380px] p-0 rounded-xl shadow-xl border-slate-100" align="end">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
+                    <h4 className="font-semibold text-sm text-slate-800">Notifications</h4>
+                    <div className="flex gap-2">
+                        {/* Dev Tool: Generate Samples */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-slate-400 hover:text-teal-600"
+                            title="Simulate Notifications"
+                            onClick={generateSamples}
+                        >
+                            <PlusCircle className="h-3.5 w-3.5" />
+                        </Button>
+                        {unreadCount > 0 && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-[10px] px-2 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                                onClick={() => markAllAsRead()}
+                            >
+                                <CheckCheck className="h-3 w-3 mr-1" /> Mark all read
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                <ScrollArea className="h-[350px]">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 py-8">
+                            <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                            <p className="text-xs">Loading updates...</p>
+                        </div>
+                    ) : notifications.length > 0 ? (
+                        <div className="flex flex-col p-2 space-y-1">
+                            {notifications.map((notification) => (
+                                <NotificationItem
+                                    key={notification.id}
+                                    notification={notification}
+                                    onRead={markAsRead}
+                                    compact
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 py-12">
+                            <Bell className="h-8 w-8 mb-2 opacity-20" />
+                            <p className="text-sm">No new notifications</p>
+                        </div>
+                    )}
+                </ScrollArea>
+
+                <div className="p-2 border-t border-slate-100 bg-slate-50/50">
+                    <Link href="/dashboard/notifications" onClick={() => setIsOpen(false)}>
+                        <Button variant="ghost" className="w-full h-8 text-xs text-slate-600 hover:text-teal-600 hover:bg-white border border-transparent hover:border-slate-200">
+                            View All Notifications
+                        </Button>
+                    </Link>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
