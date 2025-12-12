@@ -596,6 +596,26 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 </select>
               </div>
 
+              <div className="md:col-span-2 bg-red-50 p-4 rounded-lg border border-red-100">
+                <label className="block text-sm font-medium mb-2 text-red-900">Sensitive Medicine? (Prescription Required)</label>
+                <div className="flex flex-col gap-2">
+                  <select
+                    name="isSensitive"
+                    value={formData.isSensitive ? 'true' : 'false'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isSensitive: e.target.value === 'true' }))}
+                    className="w-full px-3 py-2 border border-red-200 rounded-lg bg-white focus:ring-red-500 focus:border-red-500"
+                  >
+                    <option value="false">No - General Purchase</option>
+                    <option value="true">Yes - Requires Prescription</option>
+                  </select>
+                  {formData.isSensitive && (
+                    <p className="text-xs text-red-600 font-medium">
+                      Note: Customers will be required to upload a valid prescription to purchase this item.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Quantity *</label>
                 <Input

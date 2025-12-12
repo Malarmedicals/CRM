@@ -30,16 +30,11 @@ export function useNotifications() {
         await notificationService.markAllAsRead();
     };
 
-    const generateSamples = async () => {
-        await notificationService.generateSampleNotifications();
-    };
-
     return {
         notifications,
         loading,
         unreadCount,
         markAsRead,
-        markAllAsRead,
-        generateSamples
+        markAllAsRead
     };
 }

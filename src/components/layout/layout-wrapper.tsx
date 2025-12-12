@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '@/lib/firebase'
 import DashboardLayout from '@/components/layout/dashboard-layout'
+import { useOrderListener } from '@/features/orders/use-order-listener'
 
 interface LayoutWrapperProps {
   children: React.ReactNode
@@ -17,6 +18,9 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const isDashboardRoute = pathname?.startsWith('/dashboard')
+
+  // Activate global order listener (failsafe toast)
+  useOrderListener();
 
   useEffect(() => {
     if (isDashboardRoute) {

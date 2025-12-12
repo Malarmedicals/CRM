@@ -126,43 +126,5 @@ export const notificationService = {
         });
     },
 
-    // Helper to generate sample notifications for demo
-    async generateSampleNotifications() {
-        const samples: Omit<Notification, 'id' | 'createdAt' | 'isRead'>[] = [
-            {
-                title: 'New Order Placed',
-                message: 'Order #ORD-2025-001 has been placed by John Doe.',
-                type: 'order',
-                link: '/dashboard/orders/ORD-2025-001'
-            },
-            {
-                title: 'Low Stock Alert',
-                message: 'Paracetamol 500mg is running low (Current: 15 units).',
-                type: 'inventory',
-                link: '/dashboard/inventory'
-            },
-            {
-                title: 'Prescription Uploaded',
-                message: 'New prescription requires approval for Order #ORD-2025-002.',
-                type: 'prescription',
-                link: '/dashboard/prescriptions'
-            },
-            {
-                title: 'System Error',
-                message: 'Payment gateway API timed out. Check logs.',
-                type: 'critical',
-                link: '/dashboard/settings'
-            },
-            {
-                title: 'Delivery Delayed',
-                message: 'Agent Mike is delayed for Order #ORD-2025-003 due to traffic.',
-                type: 'delivery',
-                link: '/dashboard/delivery'
-            }
-        ];
 
-        for (const sample of samples) {
-            await this.create(sample);
-        }
-    }
 };

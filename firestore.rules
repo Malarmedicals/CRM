@@ -1,130 +1,189 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper function to check if user is admin or manager
-    function isAdminOrManager() {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'manager'];
-    }
-    
-    // Helper function to check if user is authenticated
+
+    // -----------------------------
+    // Helper Functions
+    // -----------------------------
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Users collection: Only admins/managers can read/write
-    match /users/{userId} {
-      // Allow users to read their own profile, admins/managers can read all
-      allow read: if isAuthenticated() && 
-                     (request.auth.uid == userId || isAdminOrManager());
-      
-      // Only admins/managers can update/delete
-      allow update, delete: if isAdminOrManager();
-      
-      // Allow creation of user document during signup (user can create their own)
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    // Allow authenticated users to list users collection (needed to check if first user)
-    // This is limited - they can only see if collection is empty, not read all documents
-    match /users {
-      // Allow list operation for authenticated users (needed to check if collection is empty)
-      // Individual document reads are still controlled by the /users/{userId} rule above
-      allow list: if isAuthenticated();
-    }
-    
-    // Orders collection
-    match /orders/{orderId} {
-      // Users can read their own orders, admins/managers can read all
-      allow read: if isAuthenticated() && 
-                     (resource.data.userId == request.auth.uid || isAdminOrManager());
-      
-      // Users can create their own orders, admins can create any
-      allow create: if isAuthenticated() && 
-                       (request.resource.data.userId == request.auth.uid || isAdminOrManager());
-      
-      // Only admins/managers can update/delete orders
-      allow update, delete: if isAdminOrManager();
-    }
-    
-    // Products collection: Public read, authenticated Admin write
-    match /products/{productId} {
-      // Public read access for e-commerce integration
-      allow read: if true;
-      
-      // Only authenticated admins/managers can create/update/delete products
-      allow create: if isAuthenticated() && isAdminOrManager();
-      allow update, delete: if isAdminOrManager();
-    }
-    
-    // Leads collection: Only admins/managers can read, anyone can create
-    match /leads/{leadId} {
-      // Only admins/managers can read leads
-      allow read: if isAdminOrManager();
-      
-      // Anyone can create leads (for e-commerce contact forms)
-      allow create: if true;
-      
-      // Only admins/managers can update/delete
-      allow update, delete: if isAdminOrManager();
-    }
-    
-    // Categories collection: Public read, Admin write
-    match /categories/{categoryId} {
-      // Public read access for e-commerce
-      allow read: if true;
-      
-      // Only admins/managers can write
-      allow write: if isAdminOrManager();
-    }
-    
-    // CRM Actions collection: Admin only
-    match /crmActions/{actionId} {
-      // Only admins/managers can access
-      allow read, write: if isAdminOrManager();
-    }
-    
-    // Notifications collection: Users can read their own, admins can read all
-    match /notifications/{notificationId} {
-      // Users can read their own notifications, admins can read all
-      allow read: if isAuthenticated() && 
-                     (resource.data.userId == request.auth.uid || isAdminOrManager());
-      
-      // Only admins/managers can write
-      allow write: if isAdminOrManager();
+
+    // Checks whether requester exists in users collection and has role 'admin' or 'manager'
+    function isAdminOrManager() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          in ['admin', 'manager'];
     }
 
-    // Email Templates collection: Only admins/managers can read/write
+    // Defensive check to avoid exposing sensitive user fields to non-admin users.
+    function isSafePublicUserData() {
+      return resource != null &&
+        !(('role' in resource.data) ||
+          ('phone' in resource.data) ||
+          ('address' in resource.data) ||
+          ('permissions' in resource.data));
+    }
+
+    // -----------------------------
+    // Users Collection
+    // -----------------------------
+    match /users/{userId} {
+      /*
+       * READ:
+       *  - owner: full read
+       *  - admin/manager: full read
+       *  - other authenticated users: only if the document contains no sensitive fields (defensive)
+       */
+      allow read: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        isAdminOrManager() ||
+        isSafePublicUserData()
+      );
+
+      // Create: allow user to create their own profile document
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Update/Delete: only admin/manager
+      allow update, delete: if isAdminOrManager();
+    }
+
+    // Allow listing users for authenticated clients (server-side rules still enforce per-doc reads)
+    match /users {
+      allow list: if isAuthenticated();
+    }
+
+    // -----------------------------
+    // Orders Collection
+    // -----------------------------
+    // -----------------------------
+    // Orders Collection
+    // -----------------------------
+    match /orders/{orderId} {
+      // Read: owner or admin/manager
+      allow read: if isAuthenticated() &&
+                  (resource.data.userId == request.auth.uid || isAdminOrManager());
+
+      // Create: Allow Public for Storefront Demo (Guest Checkout)
+      allow create: if true;
+
+      // Update: admin/manager can update anything; owner can set status to 'cancelled' (example)
+      allow update: if isAdminOrManager() ||
+                    (isAuthenticated() &&
+                     resource.data.userId == request.auth.uid &&
+                     request.resource.data.status == 'cancelled');
+
+      // Delete: admin/manager only
+      allow delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Products Collection
+    // -----------------------------
+    match /products/{productId} {
+      // Public read for e-commerce storefront
+      allow read: if true;
+
+      // Create/Update/Delete: admin/manager only
+      allow create, update, delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Banners Collection
+    // -----------------------------
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Categories Collection
+    // -----------------------------
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Leads Collection
+    // -----------------------------
+    match /leads/{leadId} {
+      // Public forms may create leads
+      allow create: if true;
+
+      // Read/Update/Delete: admin/manager only
+      allow read, update, delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // CRM Actions Collection
+    // -----------------------------
+    match /crmActions/{actionId} {
+      allow read, write: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Email Templates & Queue
+    // -----------------------------
     match /emailTemplates/{templateId} {
       allow read, write: if isAdminOrManager();
     }
 
-    // Email Queue collection: Only admins/managers can read/write
     match /emailQueue/{emailId} {
       allow read, write: if isAdminOrManager();
     }
 
-    // WhatsApp Templates collection: Only admins/managers can read/write
+    // -----------------------------
+    // WhatsApp Templates & Queue
+    // -----------------------------
     match /whatsappTemplates/{templateId} {
       allow read, write: if isAdminOrManager();
     }
 
-    // WhatsApp Queue collection: Only admins/managers can read/write
     match /whatsappQueue/{messageId} {
       allow read, write: if isAdminOrManager();
     }
 
-    // Calendar Events collection: Public access for development
+    // -----------------------------
+    // Notifications Collection
+    // -----------------------------
+    // -----------------------------
+    // Notifications Collection
+    // -----------------------------
+    match /notifications/{notificationId} {
+      // Read: recipients or admin/manager
+      allow read: if isAuthenticated() &&
+                    (resource.data.userId == request.auth.uid || isAdminOrManager());
+
+      // Create: Allow Public for Storefront Demo (Triggers)
+      allow create: if true;
+
+      // Update/Delete: admin/manager only
+      allow update, delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Calendar Events (development)
+    // -----------------------------
     match /events/{eventId} {
+      // Development: open read/write. For production, change to:
+      // allow read: if true; allow create/update/delete: if isAdminOrManager();
       allow read, write: if true;
     }
 
-    // Stock Movements collection: Only admins/managers can read/write
+    // -----------------------------
+    // Stock Movements
+    // -----------------------------
     match /stockMovements/{movementId} {
-      allow read: if isAdminOrManager();
-      allow create: if isAdminOrManager();
+      allow read, create, update, delete: if isAdminOrManager();
+    }
+
+    // -----------------------------
+    // Fallback: deny everything else by default
+    // -----------------------------
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

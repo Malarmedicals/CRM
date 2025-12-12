@@ -4,6 +4,7 @@ import '../styles/globals.css'
 import { ThemeProvider } from '@/components/theme-provider'
 import LayoutWrapper from '@/components/layout/layout-wrapper'
 import { ConditionalAnalytics } from '@/components/analytics'
+import { Toaster } from "@/components/ui/toaster"
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -31,6 +32,7 @@ export default function RootLayout({
           </LayoutWrapper>
         </ThemeProvider>
         <ConditionalAnalytics />
+        <Toaster />
       </body>
     </html>
   )

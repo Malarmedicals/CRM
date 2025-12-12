@@ -5,12 +5,15 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart, Heart, Package, ChevronLeft, ChevronRight } from 'lucide-react'
 
+import { ecommerceService } from '@/features/ecommerce/ecommerce-service'
+
 interface StoreProductCardProps {
     product: Product
 }
 
 export function StoreProductCard({ product }: StoreProductCardProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
+    const [isBuying, setIsBuying] = useState(false)
 
     const allImages = [
         ...(product.primaryImage ? [product.primaryImage] : []),
@@ -27,6 +30,31 @@ export function StoreProductCard({ product }: StoreProductCardProps) {
     const handleNextImage = (e: React.MouseEvent) => {
         e.stopPropagation()
         setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1))
+    }
+
+    const handleQuickBuy = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setIsBuying(true)
+        try {
+            // Demo Order Data
+            await ecommerceService.placeOrder(
+                'demo-user-id',
+                'Demo Customer',
+                '+919876543210',
+                [{
+                    productId: product.id,
+                    name: product.name,
+                    quantity: 1,
+                    price: product.price - product.discount // use effective price
+                }]
+            )
+            alert("Order placed successfully! Check CRM for notification.")
+        } catch (error) {
+            console.error(error)
+            alert("Failed to place order.")
+        } finally {
+            setIsBuying(false)
+        }
     }
 
     const discountPercentage = product.price && product.discount
@@ -52,6 +80,11 @@ export function StoreProductCard({ product }: StoreProductCardProps) {
                     {product.stockStatus === 'low-stock' && (
                         <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded-sm">
                             Low Stock
+                        </span>
+                    )}
+                    {product.isSensitive && (
+                        <span className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-purple-600 text-white rounded-sm flex items-center gap-1">
+                            Rx Required
                         </span>
                     )}
                 </div>
@@ -97,9 +130,18 @@ export function StoreProductCard({ product }: StoreProductCardProps) {
                 {/* Quick Add Button - appears on hover */}
                 {product.stockStatus !== 'out-of-stock' && (
                     <div className="absolute bottom-4 left-4 right-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-10">
-                        <Button className="w-full gap-2 shadow-lg" size="sm">
-                            <ShoppingCart className="h-4 w-4" />
-                            Add to Cart
+                        <Button
+                            className="w-full gap-2 shadow-lg"
+                            size="sm"
+                            onClick={handleQuickBuy}
+                            disabled={isBuying}
+                        >
+                            {isBuying ? (
+                                <span className="animate-spin text-white">⟳</span>
+                            ) : (
+                                <ShoppingCart className="h-4 w-4" />
+                            )}
+                            {isBuying ? 'Ordering...' : 'Quick Buy (Demo)'}
                         </Button>
                     </div>
                 )}

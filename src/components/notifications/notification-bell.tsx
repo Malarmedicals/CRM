@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react';
-import { Bell, CheckCheck, Loader2, PlusCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import {
     Popover,
     PopoverContent,
@@ -15,8 +16,26 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
 export function NotificationBell() {
-    const { notifications, unreadCount, loading, markAsRead, markAllAsRead, generateSamples } = useNotifications();
+    const { notifications, unreadCount, loading, markAsRead, markAllAsRead } = useNotifications();
     const [isOpen, setIsOpen] = useState(false);
+    const { toast } = useToast();
+    const prevUnreadCountRef = useRef(unreadCount);
+
+    useEffect(() => {
+        // Did we get a new notification?
+        if (unreadCount > prevUnreadCountRef.current) {
+            // Find the newest unread notification
+            const newest = notifications.find(n => !n.isRead);
+            if (newest) {
+                toast({
+                    title: newest.title,
+                    description: newest.message,
+                    variant: "default", // or a custom notification aesthetic
+                });
+            }
+        }
+        prevUnreadCountRef.current = unreadCount;
+    }, [unreadCount, notifications, toast]);
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -35,15 +54,7 @@ export function NotificationBell() {
                     <h4 className="font-semibold text-sm text-foreground">Notifications</h4>
                     <div className="flex gap-2">
                         {/* Dev Tool: Generate Samples */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-muted-foreground hover:text-primary"
-                            title="Simulate Notifications"
-                            onClick={generateSamples}
-                        >
-                            <PlusCircle className="h-3.5 w-3.5" />
-                        </Button>
+
                         {unreadCount > 0 && (
                             <Button
                                 variant="ghost"

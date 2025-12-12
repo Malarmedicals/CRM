@@ -42,6 +42,7 @@ export interface Product {
   averageMonthlySales?: number
   createdAt: Date
   updatedAt: Date
+  isSensitive?: boolean // Requires valid prescription
 }
 
 export interface ProductDetail {
@@ -112,6 +113,7 @@ export interface Order {
   products: OrderItem[]
   totalAmount: number
   status: 'pending' | 'shipped' | 'delivered' | 'cancelled' // Payment Status
+  isNew?: boolean // Trigger for CRM notification
   paymentMethod?: string // Payment method from ecommerce platform
   deliveryStatus?: 'pending' | 'packing' | 'shipped' | 'delivered'
   prescriptionVerified: boolean
