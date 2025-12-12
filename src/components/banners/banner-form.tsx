@@ -131,11 +131,11 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
     }
 
     return (
-        <Card className="p-6 max-w-5xl mx-auto">
+        <Card className="p-6 max-w-5xl mx-auto shadow-sm animate-fade-in">
             <form onSubmit={handleSubmit} className="space-y-8">
 
                 {/* Row 1: Title, Category stuff */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
                     <div className="space-y-2">
                         <Label htmlFor="title">Banner Title (Optional)</Label>
                         <Input
@@ -173,13 +173,15 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                         />
                     </div>
 
-                    <div className="flex items-center space-x-2 pt-8">
-                        <Checkbox
-                            id="showCategoryTag"
-                            checked={formData.showCategoryTag}
-                            onCheckedChange={(checked) => setFormData({ ...formData, showCategoryTag: checked as boolean })}
-                        />
-                        <Label htmlFor="showCategoryTag" className="cursor-pointer">Show Category Tag on Banner</Label>
+                    <div className="flex flex-col justify-end h-full pb-2">
+                        <div className="flex items-center space-x-2">
+                            <Checkbox
+                                id="showCategoryTag"
+                                checked={formData.showCategoryTag}
+                                onCheckedChange={(checked) => setFormData({ ...formData, showCategoryTag: checked as boolean })}
+                            />
+                            <Label htmlFor="showCategoryTag" className="cursor-pointer font-normal text-muted-foreground">Show Category Tag</Label>
+                        </div>
                     </div>
                 </div>
 
@@ -199,8 +201,8 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                 {/* Row 3: Description */}
                 <div className="space-y-2">
                     <Label htmlFor="description">Description (Optional)</Label>
-                    <div className="border rounded-md bg-white focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-                        <div className="flex items-center gap-1 p-2 border-b bg-muted/50">
+                    <div className="border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
+                        <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                                 <Bold className="h-4 w-4" />
                             </Button>
@@ -223,7 +225,7 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             placeholder="Enter banner description..."
-                            className="border-0 focus-visible:ring-0 min-h-[120px] resize-y rounded-b-md"
+                            className="border-0 focus-visible:ring-0 min-h-[120px] resize-y rounded-none"
                         />
                     </div>
                 </div>
@@ -291,10 +293,10 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                 </div>
 
                 {/* Image Section */}
-                <div className="space-y-2 pt-4 border-t">
-                    <Label>Banner Image *</Label>
+                <div className="space-y-3 pt-4 border-t">
+                    <Label className="text-base font-semibold">Banner Image *</Label>
                     {!imageSrc ? (
-                        <div className="mt-2 border-2 border-dashed border-muted-foreground/25 rounded-lg p-10 text-center hover:bg-muted/50 transition-colors">
+                        <div className="mt-2 border-2 border-dashed border-border rounded-xl p-10 text-center hover:bg-muted/50 transition-all duration-200 cursor-pointer group">
                             <Input
                                 type="file"
                                 accept="image/*"
@@ -303,19 +305,19 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                                 id="image-upload"
                             />
                             <Label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-3">
-                                <div className="p-3 bg-muted rounded-full">
-                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                <div className="p-4 bg-muted rounded-full group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                    <ImageIcon className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
                                 </div>
-                                <div>
-                                    <span className="font-medium text-foreground">Click to upload</span>
-                                    <span className="text-muted-foreground"> or drag and drop</span>
+                                <div className="space-y-1">
+                                    <span className="font-medium text-foreground group-hover:text-primary transition-colors">Click to upload image</span>
+                                    <p className="text-sm text-muted-foreground">or drag and drop here</p>
                                 </div>
-                                <span className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (max. 5MB)</span>
+                                <span className="text-xs text-muted-foreground/80">SVG, PNG, JPG or GIF (max. 5MB)</span>
                             </Label>
                         </div>
                     ) : (
-                        <div className="mt-2 space-y-4">
-                            <div className="relative h-[300px] w-full bg-black rounded-lg overflow-hidden ring-1 ring-border">
+                        <div className="mt-2 space-y-4 animate-slide-up">
+                            <div className="relative h-[300px] w-full bg-black/5 rounded-xl overflow-hidden ring-1 ring-border shadow-inner">
                                 <Cropper
                                     image={imageSrc}
                                     crop={crop}
@@ -326,8 +328,8 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                                     onZoomChange={setZoom}
                                 />
                             </div>
-                            <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-lg">
-                                <span className="text-sm font-medium w-12">Zoom</span>
+                            <div className="flex items-center gap-4 bg-muted/40 p-4 rounded-xl border">
+                                <span className="text-sm font-medium w-12 text-muted-foreground">Zoom</span>
                                 <Slider
                                     value={[zoom]}
                                     min={1}
@@ -340,6 +342,7 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                                     type="button"
                                     variant="destructive"
                                     size="icon"
+                                    className="h-9 w-9"
                                     onClick={() => setImageSrc(null)}
                                 >
                                     <X className="h-4 w-4" />
@@ -355,7 +358,7 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                     </div>
                 )}
 
-                <div className="flex justify-end gap-3 pt-4 border-t">
+                <div className="flex justify-end gap-3 pt-6 border-t">
                     <Button type="button" variant="outline" onClick={onCancel}>
                         Cancel
                     </Button>

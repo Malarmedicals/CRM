@@ -121,9 +121,10 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
-    // Notifications collection: Public access for development (Admin only in prod)
-    match /notifications/{notificationId} {
-      allow read, write: if true;
+    // Stock Movements collection: Only admins/managers can read/write
+    match /stockMovements/{movementId} {
+      allow read: if isAdminOrManager();
+      allow create: if isAdminOrManager();
     }
   }
 }

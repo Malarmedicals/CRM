@@ -110,12 +110,19 @@ export const inventoryService = {
                 newStock = quantity // Direct adjustment
             }
 
-            // Update product stock
-            await updateDoc(doc(db, 'products', productId), {
+            // Prepare update data
+            const updateData: any = {
                 stockQuantity: newStock,
-                lastRestocked: type === 'in' ? Timestamp.now() : productData.lastRestocked,
                 updatedAt: Timestamp.now(),
-            })
+            }
+
+            // Only update lastRestocked if adding stock
+            if (type === 'in') {
+                updateData.lastRestocked = Timestamp.now()
+            }
+
+            // Update product stock
+            await updateDoc(doc(db, 'products', productId), updateData)
 
             // Log stock movement
             await addDoc(collection(db, 'stockMovements'), {

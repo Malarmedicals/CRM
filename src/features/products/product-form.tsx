@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { AlertCircle, Plus, Trash2, GripVertical } from 'lucide-react'
 import { storage } from '@/lib/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { categoryService } from '@/features/categories/category-service'
 
 interface ProductFormProps {
   product?: Product | null
@@ -97,18 +98,126 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
   const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([])
   const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>(product?.additionalImages || [])
 
+  const [categoriesData, setCategoriesData] = useState<Record<string, { subcategories: string[] }>>({})
+
+  const DEFAULT_CATEGORIES: Record<string, { subcategories: string[] }> = {
+    'Haircare': {
+      subcategories: ['Hair Oils', 'Shampoos & Conditioners', 'Hair Serums', 'Hair Creams & Masks', 'Hair Colour', 'Hair Growth Products', 'Essential Oils']
+    },
+    'Fitness & Wellness': {
+      subcategories: ['Weighing Scales', 'Fat Burners', 'Hand & Wrist Support', 'Neck & Shoulder Support', 'Oats', 'Muesli & Cereals', 'Quinoa', 'Sports Nutrition', 'Carnitine', 'Protein Supplements', 'Energy Drinks']
+    },
+    'Sexual Wellness': {
+      subcategories: ['Condoms', 'Lubricants & Massage Gels', 'Sexual Wellness Devices', 'Performance Enhancers', 'Oral Contraceptives']
+    },
+    'Vitamins & Nutrition': {
+      subcategories: [
+        'Omega & Fish Oil & DHA', 'Vitamin D', 'Vitamin B', 'Vitamin C', 'Vitamin A', 'Pre and Probiotics', 'Minerals', 'Calcium', 'Global Supplements', 'Hair & Skin Supplements', 'Specialty Supplements', 'Vitamin K', 'Gummies Vitamins'
+      ]
+    },
+    'Supports & Braces': {
+      subcategories: ['Knee Supports', 'Ankle Supports', 'Back Supports', 'Wrist Supports', 'Elbow Supports', 'Shoulder Supports', 'Neck Collars', 'Compression Garments']
+    },
+    'Immunity Boosters': {
+      subcategories: ['Vitamin C Supplements', 'Zinc Supplements', 'Echinacea', 'Elderberry', 'Turmeric & Curcumin', 'Ashwagandha', 'Multivitamins', 'Herbal Immunity']
+    },
+    'Homeopathy': {
+      subcategories: ['Homeopathic Medicines', 'Mother Tinctures', 'Biochemic Medicines', 'Dilutions', 'Ointments & Creams', 'Drops & Syrups']
+    },
+    'First Aid': {
+      subcategories: ['Bandages & Dressings', 'Antiseptics & Disinfectants', 'Pain Relief Sprays', 'First Aid Kits', 'Thermometers', 'Cotton & Gauze', 'Medical Tapes', 'Wound Care']
+    }
+  }
+
+  // Load categories from Firestore
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const allProducts = await productService.getAllProducts()
-        const uniqueCategories = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean)))
-        setCategories(uniqueCategories.sort())
+        let cats = await categoryService.getAllCategories()
+
+        // If no categories in DB, initialize defaults
+        if (cats.length === 0) {
+          await categoryService.initializeDefaults(DEFAULT_CATEGORIES)
+          cats = await categoryService.getAllCategories()
+        }
+
+        // Transform array to Record format for local state
+        const formattedData: Record<string, { subcategories: string[] }> = {}
+        cats.forEach(cat => {
+          formattedData[cat.name] = { subcategories: cat.subcategories || [] }
+        })
+        setCategoriesData(formattedData)
       } catch (error) {
-        console.error('Failed to load categories', error)
+        console.error('Failed to load categories:', error)
+        // Fallback to defaults locally if DB fails
+        setCategoriesData(DEFAULT_CATEGORIES)
       }
     }
     loadCategories()
   }, [])
+
+  // State for new categories
+  const [showAddSubCategoryDialog, setShowAddSubCategoryDialog] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState('')
+  const [newSubCategoryName, setNewSubCategoryName] = useState('')
+
+  const handleAddCategory = async () => {
+    if (newCategoryName && !categoriesData[newCategoryName]) {
+      try {
+        // Save to Firestore
+        await categoryService.addCategory(newCategoryName)
+
+        // Update local state
+        setCategoriesData(prev => ({
+          ...prev,
+          [newCategoryName]: { subcategories: [] }
+        }))
+        setFormData(prev => ({ ...prev, category: newCategoryName, subcategory: '' }))
+        setNewCategoryName('')
+        setShowAddCategoryDialog(false)
+      } catch (error) {
+        console.error('Failed to add category:', error)
+        setError('Failed to create category. Please try again.')
+      }
+    }
+  }
+
+  const handleAddSubCategory = async () => {
+    if (formData.category && newSubCategoryName && categoriesData[formData.category]) {
+      // Check if subcategory already exists
+      if (!categoriesData[formData.category].subcategories.includes(newSubCategoryName)) {
+        try {
+          // Save to Firestore (requires category ID - assuming simplified slug generation match service)
+          const categoryId = formData.category.toLowerCase().replace(/\s+/g, '-')
+          await categoryService.addSubcategory(categoryId, newSubCategoryName)
+
+          setCategoriesData(prev => ({
+            ...prev,
+            [formData.category!]: {
+              subcategories: [...prev[formData.category!].subcategories, newSubCategoryName]
+            }
+          }))
+          setFormData(prev => ({ ...prev, subcategory: newSubCategoryName }))
+          setNewSubCategoryName('')
+          setShowAddSubCategoryDialog(false)
+        } catch (error) {
+          console.error('Failed to add subcategory:', error)
+          setError('Failed to create subcategory. Please try again.')
+        }
+      }
+    }
+  }
+
+  // Effect to populate subcategory if editing and main category is set (optional logic check)
+  // ... existing code ...
+
+  const handleCategoryChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      category: value,
+      subcategory: '' // Reset subcategory when main category changes
+    }))
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -288,6 +397,54 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
           </div>
         )}
 
+        <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Category</DialogTitle>
+              <DialogDescription>
+                Create a new main product category.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Category Name</label>
+                <Input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g. Skin Care"
+                />
+              </div>
+              <Button onClick={handleAddCategory} disabled={!newCategoryName} className="w-full">
+                Add Category
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddSubCategoryDialog} onOpenChange={setShowAddSubCategoryDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Subcategory</DialogTitle>
+              <DialogDescription>
+                Add a subcategory to {formData.category}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Subcategory Name</label>
+                <Input
+                  value={newSubCategoryName}
+                  onChange={(e) => setNewSubCategoryName(e.target.value)}
+                  placeholder="e.g. Face Wash"
+                />
+              </div>
+              <Button onClick={handleAddSubCategory} disabled={!newSubCategoryName} className="w-full">
+                Add Subcategory
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
@@ -298,13 +455,13 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <div className="flex gap-2">
                   <Select
                     value={formData.category}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                    onValueChange={handleCategoryChange}
                   >
-                    <SelectTrigger className="flex-1 w-full border-input bg-background">
+                    <SelectTrigger className="w-full border-input bg-background flex-1">
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
+                      {Object.keys(categoriesData).map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
                         </SelectItem>
@@ -315,10 +472,40 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                     type="button"
                     variant="outline"
                     onClick={() => setShowAddCategoryDialog(true)}
-                    className="whitespace-nowrap bg-background"
+                    className="shrink-0"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add New
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Sub Category</label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.subcategory}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, subcategory: value }))}
+                    disabled={!formData.category}
+                  >
+                    <SelectTrigger className="w-full border-input bg-background flex-1">
+                      <SelectValue placeholder={formData.category ? "Select Sub Category" : "Select Main Category First"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.category && categoriesData[formData.category]?.subcategories.map((sub) => (
+                        <SelectItem key={sub} value={sub}>
+                          {sub}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddSubCategoryDialog(true)}
+                    className="shrink-0"
+                    disabled={!formData.category}
+                  >
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
