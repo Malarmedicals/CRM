@@ -1,6 +1,7 @@
 import {
   collection,
-  addDoc,
+  setDoc,
+  getDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -25,13 +26,35 @@ export const productService = {
         stockStatus = 'low-stock'
       }
 
-      const docRef = await addDoc(collection(db, 'products'), {
+      // Generate SEO-friendly slug from name
+      let slug = productData.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '')
+
+      // Fallback if slug is empty
+      if (!slug) {
+        slug = 'product-' + Date.now()
+      }
+
+      // Check if product with this slug already exists to prevent accidental overwrite
+      // We'll append a random string if it exists to ensure uniqueness while keeping the name part
+      // Note: This needs 'getDoc' to be imported
+      let docRef = doc(db, 'products', slug)
+      const docSnap = await getDoc(docRef)
+
+      if (docSnap.exists()) {
+        slug = `${slug}-${Date.now().toString().slice(-4)}`
+        docRef = doc(db, 'products', slug)
+      }
+
+      await setDoc(docRef, {
         ...productData,
         stockStatus, // Ensure stockStatus is set
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       })
-      return docRef.id
+      return slug
     } catch (error: any) {
       throw new Error(`Failed to add product: ${error.message}`)
     }
@@ -145,7 +168,7 @@ export const productService = {
     try {
       const thirtyDaysFromNow = new Date()
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
-      
+
       const allProducts = await this.getAllProducts()
       return allProducts.filter((product) => {
         const expiryDate = new Date(product.expiryDate)

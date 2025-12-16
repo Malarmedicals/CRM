@@ -175,3 +175,43 @@ export interface Banner {
   createdAt: Date
   updatedAt: Date
 }
+
+export interface PrescriptionItem {
+  medicineName: string
+  productId?: string
+  productName?: string // Name from our inventory
+  quantity: number
+  price?: number
+  dosage: string
+  duration?: string
+  isSubstitute?: boolean
+}
+
+export interface Prescription {
+  id: string
+  userId: string
+  customerName?: string
+  customerPhone?: string
+  fileUrl: string
+  fileType: string
+  status: 'pending' | 'verifying' | 'approved' | 'rejected' | 'ordered'
+
+  // Verification Data
+  pharmacistId?: string
+  pharmacistName?: string
+  verificationNotes?: string;
+  rejectionReason?: string
+
+  // Digitized Medicines
+  prescribedMedicines?: PrescriptionItem[]
+
+  // Metadata
+  doctorName?: string
+  patientName?: string
+  prescriptionDate?: Date
+
+  // Workflow
+  orderId?: string
+  createdAt: Date
+  updatedAt: Date
+}

@@ -7,7 +7,7 @@ import { authService } from '@/features/auth/auth-service'
 import { auth } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet'
-import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, MoreVertical, ChevronDown, Warehouse } from 'lucide-react'
+import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, MoreVertical, ChevronDown, Warehouse, FileText } from 'lucide-react'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 
 interface DashboardLayoutProps {
@@ -57,6 +57,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { href: '/dashboard/inventory', label: 'Inventory', icon: Warehouse },
     { href: '/dashboard/users', label: 'Users', icon: Users },
     { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
+    { href: '/dashboard/prescriptions', label: 'Prescriptions', icon: FileText },
     { href: '/dashboard/crm', label: 'CRM Tools', icon: Mail },
   ]
 

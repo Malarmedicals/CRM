@@ -146,8 +146,15 @@ service cloud.firestore {
     }
 
     // -----------------------------
-    // Notifications Collection
+    // Prescriptions Collection
     // -----------------------------
+    match /prescriptions/{prescriptionId} {
+      allow read: if isAuthenticated() && 
+                  (resource.data.userId == request.auth.uid || isAdminOrManager());
+      allow create: if true;
+      allow update, delete: if isAdminOrManager();
+    }
+
     // -----------------------------
     // Notifications Collection
     // -----------------------------

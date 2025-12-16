@@ -1,9 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Pill, Truck, FileText, AlertTriangle } from "lucide-react"
+import { MoreHorizontal, Pill, Truck, FileText, AlertTriangle, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { prescriptionService } from "@/features/prescriptions/prescription-service"
+import { Prescription } from "@/lib/models/types"
+import { formatDistanceToNow } from "date-fns"
 
 interface WidgetProps {
     className?: string
@@ -64,11 +69,24 @@ export function ExpiringMedicinesWidget({ className, medicines = [] }: ExpiringM
 }
 
 export function PendingApprovalsWidget({ className }: WidgetProps) {
-    const approvals = [
-        { id: "#REQ-001", type: "Prescription", user: "John Doe", time: "10m ago" },
-        { id: "#REQ-002", type: "Bulk Order", user: "City Hospital", time: "1h ago" },
-        { id: "#REQ-003", type: "Return", user: "Sarah Smith", time: "2h ago" },
-    ]
+    const [approvals, setApprovals] = useState<Prescription[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        loadData()
+    }, [])
+
+    const loadData = async () => {
+        try {
+            // Fetch only pending prescriptions
+            const data = await prescriptionService.getAllPrescriptions('pending')
+            setApprovals(data.slice(0, 5)) // Show max 5
+        } catch (error) {
+            console.error("Failed to load pending approvals", error)
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <Card className={cn("border shadow-sm bg-card", className)}>
@@ -77,26 +95,47 @@ export function PendingApprovalsWidget({ className }: WidgetProps) {
                     <FileText className="h-4 w-4 text-blue-500" />
                     Pending Approvals
                 </CardTitle>
-                <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 border-none">3 New</Badge>
+                <div className="flex items-center gap-2">
+                    {approvals.length > 0 && (
+                        <Badge className="bg-blue-500/10 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20 border-none">
+                            {approvals.length} New
+                        </Badge>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={loadData}>
+                        <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="space-y-3">
-                    {approvals.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between border-b border-border last:border-0 pb-3 last:pb-0">
-                            <div className="flex items-center gap-3">
-                                <div className="h-2 w-2 rounded-full bg-blue-500" />
-                                <div>
-                                    <p className="text-sm font-medium text-foreground">{item.type}</p>
-                                    <p className="text-xs text-muted-foreground">{item.user}</p>
+                    {loading ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>
+                    ) : approvals.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No pending approvals</p>
+                    ) : (
+                        approvals.map((item, i) => (
+                            <Link href={`/dashboard/prescriptions/${item.id}`} key={item.id} className="block group">
+                                <div className="flex items-center justify-between border-b border-border last:border-0 pb-3 last:pb-0 group-hover:bg-muted/50 p-2 rounded-lg transition-colors -mx-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+                                        <div>
+                                            <p className="text-sm font-medium text-foreground">Prescription</p>
+                                            <p className="text-xs text-muted-foreground">{item.customerName || 'Unknown User'}</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                                        {item.createdAt ? formatDistanceToNow(new Date(item.createdAt), { addSuffix: true }).replace('about ', '') : 'Just now'}
+                                    </span>
                                 </div>
-                            </div>
-                            <span className="text-xs text-muted-foreground">{item.time}</span>
-                        </div>
-                    ))}
+                            </Link>
+                        ))
+                    )}
                 </div>
-                <Button variant="outline" className="w-full mt-4 text-xs h-8 border-dashed text-muted-foreground">
-                    View All Approvals
-                </Button>
+                <Link href="/dashboard/prescriptions">
+                    <Button variant="outline" className="w-full mt-4 text-xs h-8 border-dashed text-muted-foreground hover:text-foreground">
+                        View All Approvals
+                    </Button>
+                </Link>
             </CardContent>
         </Card>
     )
