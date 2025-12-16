@@ -19,6 +19,45 @@ interface ProductFormProps {
   onSuccess: () => void
 }
 
+// Helper: Convert image file to WebP
+const convertToWebP = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'))
+        return
+      }
+      ctx.drawImage(img, 0, 0)
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error('Failed to convert to WebP'))
+            return
+          }
+          const newFile = new File(
+            [blob],
+            file.name.replace(/\.[^/.]+$/, '') + '.webp',
+            {
+              type: 'image/webp',
+              lastModified: Date.now(),
+            }
+          )
+          resolve(newFile)
+        },
+        'image/webp',
+        0.8 // Quality 0.8
+      )
+    }
+    img.onerror = (e) => reject(e)
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function ProductForm({ product, onClose, onSuccess }: ProductFormProps) {
   // Helper to safely convert date from Firestore or other formats
   const convertToDate = (date: any): Date => {
@@ -338,18 +377,35 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       let imageUrl = formData.primaryImage
 
       if (imageFile) {
-        const storageRef = ref(storage, `products/${Date.now()}_primary_${imageFile.name}`)
-        const snapshot = await uploadBytes(storageRef, imageFile)
-        imageUrl = await getDownloadURL(snapshot.ref)
+        try {
+          const webpFile = await convertToWebP(imageFile)
+          const storageRef = ref(storage, `products/${Date.now()}_primary_${webpFile.name}`)
+          const snapshot = await uploadBytes(storageRef, webpFile)
+          imageUrl = await getDownloadURL(snapshot.ref)
+        } catch (convertError) {
+          console.error('WebP conversion failed, uploading original:', convertError)
+          const storageRef = ref(storage, `products/${Date.now()}_primary_${imageFile.name}`)
+          const snapshot = await uploadBytes(storageRef, imageFile)
+          imageUrl = await getDownloadURL(snapshot.ref)
+        }
       }
 
       // Handle additional images
       const newAdditionalImageUrls: string[] = []
       for (const file of additionalImageFiles) {
-        const storageRef = ref(storage, `products/${Date.now()}_additional_${file.name}`)
-        const snapshot = await uploadBytes(storageRef, file)
-        const url = await getDownloadURL(snapshot.ref)
-        newAdditionalImageUrls.push(url)
+        try {
+          const webpFile = await convertToWebP(file)
+          const storageRef = ref(storage, `products/${Date.now()}_additional_${webpFile.name}`)
+          const snapshot = await uploadBytes(storageRef, webpFile)
+          const url = await getDownloadURL(snapshot.ref)
+          newAdditionalImageUrls.push(url)
+        } catch (convertError) {
+          console.error('WebP conversion failed for additional image, uploading original:', convertError)
+          const storageRef = ref(storage, `products/${Date.now()}_additional_${file.name}`)
+          const snapshot = await uploadBytes(storageRef, file)
+          const url = await getDownloadURL(snapshot.ref)
+          newAdditionalImageUrls.push(url)
+        }
       }
 
       // Merge existing URLs (that are still in previews) with new URLs
