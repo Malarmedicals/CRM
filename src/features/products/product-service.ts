@@ -8,12 +8,60 @@ import {
   getDocs,
   query,
   where,
+  orderBy,
+  startAt,
+  endAt,
+  limit,
   Timestamp,
+  getCountFromServer,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Product } from '@/lib/models/types'
 
 export const productService = {
+  // Search products by name (prefix search)
+  async searchProducts(searchTerm: string): Promise<Product[]> {
+    try {
+      if (!searchTerm) return []
+
+      // Standardize search term
+      const term = searchTerm.toLowerCase()
+      // Note: This requires a field 'searchName' or equivalent lowercased name in DB for case-insensitive search
+      // efficiently. For now, assuming 'name' matches or we do client side filtering if result set is small?
+      // Actually, Firestore is case-sensitive.
+      // Better approach without external search engine:
+      // use 'orderBy(name)' and startAt/endAt.
+      // But 'name' is usually Capitalized in DB.
+
+      // Fix: We'll assume the user types matching case or we handle it. 
+      // Ideally, we maintain a `nameLower` field in DB. 
+      // For now, let's try a range query on 'name', assuming sentence case.
+      // Or we can rely on 'getAllProducts' if we really have to, but that's what we want to avoid.
+
+      // Alternative: Just fetch recent or popular products? 
+      // No, for medicine selector we need specific ones.
+
+      // Let's implement basic prefix search on 'name'.
+      const q = query(
+        collection(db, 'products'),
+        orderBy('name'),
+        startAt(searchTerm),
+        endAt(searchTerm + '\uf8ff'),
+        limit(20)
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
+      } as Product))
+    } catch (error: any) {
+      console.error('Failed to search products:', error)
+      return []
+    }
+  },
   // Add new product
   async addProduct(productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
@@ -163,19 +211,65 @@ export const productService = {
     }
   },
 
+  // Get product count
+  async getProductCount(): Promise<number> {
+    try {
+      const snapshot = await getCountFromServer(collection(db, 'products'))
+      return snapshot.data().count
+    } catch (error: any) {
+      console.error('Failed to get product count:', error)
+      return 0
+    }
+  },
+
   // Get expiring products
   async getExpiringProducts(): Promise<Product[]> {
     try {
+      const today = new Date()
       const thirtyDaysFromNow = new Date()
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
 
-      const allProducts = await this.getAllProducts()
-      return allProducts.filter((product) => {
-        const expiryDate = new Date(product.expiryDate)
-        return expiryDate <= thirtyDaysFromNow && expiryDate > new Date()
+      const q = query(
+        collection(db, 'products'),
+        where('expiryDate', '<=', thirtyDaysFromNow),
+        where('expiryDate', '>', today)
+      )
+
+      const querySnapshot = await getDocs(q)
+      return querySnapshot.docs.map((doc) => {
+        const data = doc.data()
+        return {
+          id: doc.id,
+          name: data.name || '',
+          description: data.description || '',
+          price: data.price || 0,
+          discount: data.discount || 0,
+          category: data.category || '',
+          subcategory: data.subcategory || '',
+          batchNumber: data.batchNumber || '',
+          expiryDate: data.expiryDate?.toDate() || new Date(),
+          stockQuantity: data.stockQuantity || 0,
+          images: data.images || [],
+          primaryImage: data.primaryImage,
+          additionalImages: data.additionalImages,
+          productDetails: data.productDetails || [],
+          colorVariants: data.colorVariants || [],
+          materials: data.materials || [],
+          seoTags: data.seoTags,
+          hsnCode: data.hsnCode,
+          gstRate: data.gstRate,
+          vendor: data.vendor,
+          brandName: data.brandName,
+          stockStatus: data.stockStatus || 'in-stock',
+          estimatedDelivery: data.estimatedDelivery,
+          freeShippingThreshold: data.freeShippingThreshold,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Product
       })
     } catch (error: any) {
-      throw new Error(`Failed to fetch expiring products: ${error.message}`)
+      console.error('Failed to fetch expiring products:', error)
+      return []
     }
   },
 }

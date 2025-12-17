@@ -16,38 +16,32 @@ export function MedicineSelector({ onSelect }: MedicineSelectorProps) {
     const [query, setQuery] = useState('')
     const [results, setResults] = useState<Product[]>([])
     const [loading, setLoading] = useState(false)
-    const [allProducts, setAllProducts] = useState<Product[]>([])
-
-    // Load all products once for client-side filtering (better for small catalogues)
-    // For production with thousands of items, we'd want a debounced server search
+    // Debounced Server-side search
     useEffect(() => {
-        loadProducts()
-    }, [])
+        const timer = setTimeout(async () => {
+            if (query.trim().length < 2) {
+                setResults([])
+                return
+            }
 
-    const loadProducts = async () => {
-        try {
-            const products = await productService.getAllProducts()
-            setAllProducts(products)
-        } catch (error) {
-            console.error('Failed to load products for selector:', error)
-        }
-    }
+            setLoading(true)
+            try {
+                // Search with capitalized first letter as fallback since DB might use Title Case
+                const term = query
+                const capitalizedTerm = term.charAt(0).toUpperCase() + term.slice(1)
 
-    // Filter products when query changes
-    useEffect(() => {
-        if (!query.trim()) {
-            setResults([])
-            return
-        }
+                // We'll search for the capitalized version primarily as medicine names are usually capitalized
+                const results = await productService.searchProducts(capitalizedTerm)
+                setResults(results)
+            } catch (error) {
+                console.error('Search failed:', error)
+            } finally {
+                setLoading(false)
+            }
+        }, 300)
 
-        const search = query.toLowerCase()
-        const filtered = allProducts.filter(p =>
-            p.name.toLowerCase().includes(search) ||
-            p.category.toLowerCase().includes(search) ||
-            (p.batchNumber && p.batchNumber.toLowerCase().includes(search))
-        )
-        setResults(filtered.slice(0, 10)) // Limit results
-    }, [query, allProducts])
+        return () => clearTimeout(timer)
+    }, [query])
 
     return (
         <div className="relative w-full">

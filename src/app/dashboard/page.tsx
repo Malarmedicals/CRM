@@ -42,10 +42,12 @@ export default function DashboardPage() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         try {
-          const products = await productService.getAllProducts()
-          const lowStock = await productService.getLowStockProducts()
-          const expiring = await productService.getExpiringProducts()
-          const orders = await orderService.getAllOrders()
+          const [productCount, lowStock, expiring, orders] = await Promise.all([
+            productService.getProductCount(),
+            productService.getLowStockProducts(),
+            productService.getExpiringProducts(),
+            orderService.getRecentOrders(30)
+          ])
 
           // Calculate Stats
           const totalSales = orders.reduce((sum, order) => sum + order.totalAmount, 0)
@@ -54,9 +56,12 @@ export default function DashboardPage() {
           ).length
 
           setStats({
-            totalProducts: products.length,
+            totalProducts: productCount,
             lowStockCount: lowStock.length,
             expiringCount: expiring.length,
+            // Note: This is now "Orders (Last 30 Days)" effectively. 
+            // If we want total lifetime orders, we'd need a separate count query.
+            // But for dashboard "snapshot", this is often more relevant or acceptable for speed.
             totalOrders: orders.length,
             totalSales,
             pendingShipments,
@@ -89,14 +94,12 @@ export default function DashboardPage() {
           const categoryMap = new Map<string, number>()
           orders.forEach(order => {
             order.products.forEach(item => {
-              // Try to find category from product list if not in item
-              let category = item.category
-              if (!category) {
-                const product = products.find(p => p.id === item.productId)
-                category = product?.category || 'Uncategorized'
-              }
+              // Reliant on item having category snapshot. 
+              // If missing, use 'General' or similar. 
+              // We avoid fetching 1000s of products just for this fallback.
+              const category = item.category || 'General'
 
-              const itemTotal = item.price * item.quantity
+              const itemTotal = (item.price || 0) * (item.quantity || 1)
               if (categoryMap.has(category)) {
                 categoryMap.set(category, categoryMap.get(category)! + itemTotal)
               } else {
@@ -112,23 +115,22 @@ export default function DashboardPage() {
           setCategoryData(processedCategoryData)
 
           // Process Top Selling Products
-          const productSalesMap = new Map<string, number>()
+          const productSalesMap = new Map<string, { name: string, sales: number }>()
           orders.forEach(order => {
             order.products.forEach(item => {
-              const productId = item.productId
+              const productId = item.productId || 'unknown'
+              const productName = item.productName || item.name || 'Unknown Product'
+
               if (productSalesMap.has(productId)) {
-                productSalesMap.set(productId, productSalesMap.get(productId)! + item.quantity)
+                const existing = productSalesMap.get(productId)!
+                productSalesMap.set(productId, { ...existing, sales: existing.sales + item.quantity })
               } else {
-                productSalesMap.set(productId, item.quantity)
+                productSalesMap.set(productId, { name: productName, sales: item.quantity })
               }
             })
           })
 
-          const processedTopProducts = Array.from(productSalesMap.entries())
-            .map(([id, sales]) => {
-              const product = products.find(p => p.id === id)
-              return { name: product?.name || 'Unknown Product', sales }
-            })
+          const processedTopProducts = Array.from(productSalesMap.values())
             .sort((a, b) => b.sales - a.sales)
             .slice(0, 5) // Top 5 products
           setTopProducts(processedTopProducts)

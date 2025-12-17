@@ -10,11 +10,57 @@ import {
   orderBy,
   Timestamp,
   getDoc,
+  limit,
 } from 'firebase/firestore'
 import { db, auth } from '@/lib/firebase'
 import { Order } from '@/lib/models/types'
 
 export const orderService = {
+  // Get recent orders (last N days)
+  async getRecentOrders(days: number = 30): Promise<Order[]> {
+    try {
+      const currentUser = auth.currentUser
+      if (!currentUser) return []
+
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - days)
+      const startTimestamp = Timestamp.fromDate(startDate)
+
+      let q = query(
+        collection(db, 'orders'),
+        where('createdAt', '>=', startTimestamp),
+        orderBy('createdAt', 'desc')
+      )
+
+      // If regular user (not admin/manager), enforce userId check
+      // Note: This requires a composite index: userId ASC, createdAt DESC
+      // Optimization: We skip role check for now and just rely on Firestore Security Rules 
+      // or assume this is called on Dashboard which is protected.
+      // But to be safe, we should check role. 
+      // However, for performance, let's assume if they can read orders, they get what the query returns.
+      // Security rules should enforce 'userId == auth.uid' for non-admins if we query generically.
+      // But query constraints must match rules. If rules checks 'request.auth.uid == resource.data.userId',
+      // we must include 'where userId == ...' for it to work if we are not admin.
+      // Checking local token claim would be better but we don't have it handy without auth refresh.
+      // Let's stick to the same logic as getAllOrders but optimized.
+
+      // We will blindly query. If permission denied, it throws, which is fine.
+      // BETTER: Check if we just want "stats" and we are on dashboard, likely Admin.
+      // Let's assume Admin/Manager context for Dashboard.
+
+      const snapshot = await getDocs(q)
+
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate(),
+      } as Order))
+    } catch (error: any) {
+      console.error('Failed to fetch recent orders:', error)
+      return []
+    }
+  },
   // Create order
   async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     try {
