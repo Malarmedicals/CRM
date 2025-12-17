@@ -120,7 +120,8 @@ export const prescriptionService = {
         id: string,
         medicines: PrescriptionItem[],
         pharmacistId: string,
-        notes?: string
+        notes?: string,
+        userId?: string
     ): Promise<void> {
         try {
             await updateDoc(doc(db, 'prescriptions', id), {
@@ -131,18 +132,17 @@ export const prescriptionService = {
                 updatedAt: serverTimestamp(),
             })
 
-            // Notify Customer (Need to fetch prescription to get userId first, but optimizing for now) 
-            // We assume the caller might want to do this, or we do a quick fetch, or we just rely on Admin seeing it.
-            // But strictly, this notifies the "System" that it's approved. 
-            // Ideally we need the userId to notify the specific user. 
-            // For now, let's create a generic notification that will show up in the Admin Log.
-
+            // Notify Customer/System
             await notificationService.create({
                 title: 'Prescription Approved',
                 message: `Prescription #${id.slice(0, 8)} has been approved.`,
                 type: 'prescription',
                 link: `/dashboard/prescriptions/${id}`,
-                metadata: { prescriptionId: id, status: 'approved' }
+                metadata: {
+                    prescriptionId: id,
+                    status: 'approved',
+                    userId: userId // crucial for filtering user-specific notifications
+                }
             } as any)
 
         } catch (error: any) {
@@ -171,9 +171,9 @@ export const prescriptionService = {
 
             // Create Order
             const orderData = {
-                userId: prescription.userId,
-                customerName: prescription.customerName,
-                customerPhone: prescription.customerPhone,
+                userId: prescription.userId || 'guest',
+                customerName: prescription.customerName || prescription.patientName || 'Guest Customer',
+                customerPhone: prescription.customerPhone || '',
                 products: orderItems,
                 totalAmount,
                 status: 'pending', // Pending Payment from Customer
@@ -187,10 +187,11 @@ export const prescriptionService = {
 
             const orderRef = await addDoc(collection(db, 'orders'), orderData)
 
-            // Update Prescription with Order ID and Status
+            // Update Prescription with Order ID
             await updateDoc(doc(db, 'prescriptions', prescription.id), {
                 orderId: orderRef.id,
-                status: 'ordered', // Mark as converted to order
+                // Keep status as 'approved' so the user sees it as Verified/Approved in their app
+                status: 'approved',
                 updatedAt: serverTimestamp(),
             })
 

@@ -159,16 +159,13 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                 prescription.id,
                 medicines,
                 pharmacistId,
-                notes
+                notes,
+                prescription.userId // Pass userId for notification
             )
 
-            // Create Order
-            await prescriptionService.createOrderFromPrescription(
-                prescription,
-                medicines
-            )
+            // Order creation removed as per requirement - User will presumably confirm from their end
 
-            toast.success('Prescription approved and order created successfully')
+            toast.success('Prescription approved successfully')
             router.push('/dashboard/prescriptions')
         } catch (error) {
             console.error('Approval failed:', error)
@@ -251,7 +248,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                                 disabled={processing}
                             >
                                 <CheckCircle className="h-4 w-4 mr-2" />
-                                Approve & Create Order
+                                Approve Prescription
                             </Button>
                         </>
                     ) : (
