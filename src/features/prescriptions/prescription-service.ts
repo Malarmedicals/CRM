@@ -145,6 +145,20 @@ export const prescriptionService = {
                 }
             } as any)
 
+            // Notify Customer via user_notifications (E-commerce sync)
+            if (userId) {
+                await addDoc(collection(db, 'user_notifications'), {
+                    createdAt: serverTimestamp(),
+                    isRead: false,
+                    message: "Your prescription has been approved.",
+                    metadata: {
+                        userId: userId,
+                        relatedId: id,
+                        type: "prescription_approved"
+                    }
+                })
+            }
+
         } catch (error: any) {
             throw new Error(`Failed to approve prescription: ${error.message}`)
         }
