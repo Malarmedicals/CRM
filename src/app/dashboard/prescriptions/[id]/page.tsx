@@ -356,6 +356,26 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                             </div>
                         </div>
 
+                        {/* Customer Notes Section */}
+                        {prescription.medicationNotes?.customerNotes && (
+                            <div className="space-y-2 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-blue-600" />
+                                    <Label className="text-blue-900 font-semibold">Customer Notes</Label>
+                                </div>
+                                <p className="text-sm text-blue-800 whitespace-pre-wrap">
+                                    {prescription.medicationNotes.customerNotes}
+                                </p>
+                                {prescription.medicationNotes.calculationMode && (
+                                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-blue-200">
+                                        <Badge variant="outline" className="text-xs bg-white text-blue-700 border-blue-300">
+                                            Calculation Mode: {prescription.medicationNotes.calculationMode}
+                                        </Badge>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* Medicine Selector */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">

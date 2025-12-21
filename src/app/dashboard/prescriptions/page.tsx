@@ -159,6 +159,7 @@ export default function PrescriptionsPage() {
                             <tr className="text-left text-xs font-semibold uppercase">
                                 <th className="p-4 whitespace-nowrap">Date Uploaded</th>
                                 <th className="p-4 whitespace-nowrap">Customer</th>
+                                <th className="p-4 whitespace-nowrap">Customer Notes</th>
                                 <th className="p-4 whitespace-nowrap">Status</th>
                                 <th className="p-4 whitespace-nowrap">Pharmacist</th>
                                 <th className="p-4 whitespace-nowrap text-right">Actions</th>
@@ -191,6 +192,17 @@ export default function PrescriptionsPage() {
                                         </div>
                                     </td>
                                     <td className="p-4">
+                                        {p.medicationNotes?.customerNotes ? (
+                                            <div className="max-w-xs">
+                                                <p className="text-sm text-blue-700 truncate" title={p.medicationNotes.customerNotes}>
+                                                    {p.medicationNotes.customerNotes}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">-</span>
+                                        )}
+                                    </td>
+                                    <td className="p-4">
                                         {getStatusBadge(p.status)}
                                     </td>
                                     <td className="p-4">
@@ -212,7 +224,7 @@ export default function PrescriptionsPage() {
                             ))}
                             {filteredPrescriptions.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
                                         No prescriptions found matching your filters.
                                     </td>
                                 </tr>

@@ -210,6 +210,13 @@ export interface Prescription {
   patientName?: string
   prescriptionDate?: Date
 
+  // Customer Notes from E-commerce
+  medicationNotes?: {
+    customerNotes?: string
+    calculationMode?: string
+    [key: string]: any
+  }
+
   // Workflow
   orderId?: string
   createdAt: Date
