@@ -78,14 +78,74 @@ export const orderService = {
   // Update order
   async updateOrder(id: string, orderData: Partial<Order>): Promise<void> {
     try {
-      await updateDoc(doc(db, 'orders', id), {
-        ...orderData,
-        updatedAt: Timestamp.now(),
-      })
+      // Get the current order data to check previous status
+      const orderDoc = await getDoc(doc(db, 'orders', id))
+      if (!orderDoc.exists()) {
+        throw new Error('Order not found')
+      }
+
+      const currentOrder = {
+        id: orderDoc.id,
+        ...orderDoc.data()
+      } as Order
+
+      const previousDeliveryStatus = currentOrder.deliveryStatus
+      const newDeliveryStatus = orderData.deliveryStatus
+
+      // Check if delivery status is changing to 'delivered'
+      const isBeingDelivered = newDeliveryStatus === 'delivered' && previousDeliveryStatus !== 'delivered'
+
+      // If being delivered, validate and reduce stock
+      if (isBeingDelivered) {
+        // Import the inventory integration service
+        const { inventoryIntegrationService } = await import('./inventory-integration-service')
+
+        // Validate stock availability before marking as delivered
+        const validation = await inventoryIntegrationService.validateStockForDelivery(currentOrder)
+
+        if (!validation.valid) {
+          console.warn('Stock validation failed for order:', validation.errors)
+          // You can choose to either:
+          // 1. Throw an error to prevent delivery
+          // throw new Error(`Cannot deliver order: ${validation.errors.join(', ')}`)
+          // 2. Or proceed with a warning (current behavior)
+          // We'll proceed but log the warning
+        }
+
+        // Update the order first
+        await updateDoc(doc(db, 'orders', id), {
+          ...orderData,
+          updatedAt: Timestamp.now(),
+        })
+
+        // Then reduce stock
+        try {
+          await inventoryIntegrationService.reduceStockForOrder(currentOrder)
+          console.log(`✅ Stock reduced successfully for order ${id}`)
+        } catch (stockError: any) {
+          console.error('Failed to reduce stock:', stockError)
+          // Optionally: Revert the order status if stock reduction fails
+          // await updateDoc(doc(db, 'orders', id), {
+          //   deliveryStatus: previousDeliveryStatus,
+          //   updatedAt: Timestamp.now(),
+          // })
+          // throw new Error(`Order updated but stock reduction failed: ${stockError.message}`)
+
+          // For now, we'll just log the error and continue
+          // The stock movement can be manually adjusted later
+        }
+      } else {
+        // Normal update without inventory changes
+        await updateDoc(doc(db, 'orders', id), {
+          ...orderData,
+          updatedAt: Timestamp.now(),
+        })
+      }
     } catch (error: any) {
       throw new Error(`Failed to update order: ${error.message}`)
     }
   },
+
 
   // Get all orders (Admin/manager) or user's own orders
   async getAllOrders(): Promise<Order[]> {

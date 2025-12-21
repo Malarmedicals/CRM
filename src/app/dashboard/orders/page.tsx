@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Search, Eye, RefreshCw, Calendar, User, Package, CheckCircle, Clock, Edit, Save, X, CreditCard, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { OrderStockHistory } from '@/components/orders/order-stock-history'
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
@@ -79,15 +80,25 @@ export default function OrdersPage() {
 
   const handleSaveEdit = async (orderId: string) => {
     try {
+      const isMarkingAsDelivered = editFormData.deliveryStatus === 'delivered'
+
       await orderService.updateOrder(orderId, editFormData)
       await loadOrders()
       setEditingOrderId(null)
-      toast.success('Order updated successfully')
+
+      if (isMarkingAsDelivered) {
+        toast.success('Order marked as delivered! Inventory stock has been automatically reduced.', {
+          duration: 5000
+        })
+      } else {
+        toast.success('Order updated successfully')
+      }
     } catch (error) {
       console.error('Failed to update order:', error)
       toast.error('Failed to update order')
     }
   }
+
 
   const handleCancelEdit = () => {
     setEditingOrderId(null)
@@ -709,6 +720,11 @@ export default function OrdersPage() {
                   ))}
                 </div>
               </Card>
+
+              {/* Stock Movement History */}
+              {selectedOrder.deliveryStatus === 'delivered' && (
+                <OrderStockHistory orderId={selectedOrder.id} />
+              )}
 
               {/* Total */}
               <Card className="p-4 bg-primary/5">

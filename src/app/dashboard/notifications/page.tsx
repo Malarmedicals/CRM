@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NotificationType, NOTIFICATION_TYPES } from '@/lib/models/notification';
 
 export default function NotificationsPage() {
-    const { notifications, loading, markAsRead, markAllAsRead, generateSamples } = useNotifications();
+    const { notifications, loading, markAsRead, markAllAsRead } = useNotifications();
     const [filterType, setFilterType] = useState<NotificationType | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -32,9 +32,6 @@ export default function NotificationsPage() {
                     <p className="text-slate-500">Stay updated with all CRM activities.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={generateSamples} className="hidden md:flex">
-                        Simulate Events
-                    </Button>
                     {unreadCount > 0 && (
                         <Button onClick={() => markAllAsRead()} className="bg-teal-600 hover:bg-teal-700 text-white">
                             <CheckCheck className="h-4 w-4 mr-2" /> Mark all as read
