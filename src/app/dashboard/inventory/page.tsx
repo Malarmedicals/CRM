@@ -178,11 +178,11 @@ export default function InventoryPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="max-w-7xl mx-auto space-y-8">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-3xl font-bold flex items-center gap-2 tracking-tight">
                         📦 Inventory Management
                     </h1>
                     <p className="text-muted-foreground mt-1">
@@ -197,7 +197,7 @@ export default function InventoryPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <Package className="h-4 w-4 text-blue-600" />
                         <p className="text-xs text-muted-foreground">Total Products</p>
@@ -205,7 +205,7 @@ export default function InventoryPage() {
                     <p className="text-2xl font-bold">{stats.totalProducts}</p>
                 </Card>
 
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <TrendingUp className="h-4 w-4 text-green-600" />
                         <p className="text-xs text-muted-foreground">Total Items</p>
@@ -213,7 +213,7 @@ export default function InventoryPage() {
                     <p className="text-2xl font-bold">{stats.totalItems.toLocaleString()}</p>
                 </Card>
 
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">💰</span>
                         <p className="text-xs text-muted-foreground">Total Value</p>
@@ -221,7 +221,7 @@ export default function InventoryPage() {
                     <p className="text-2xl font-bold">₹{stats.totalValue.toLocaleString()}</p>
                 </Card>
 
-                <Card className="p-4 border-yellow-200 bg-yellow-50">
+                <Card className="p-4 border-yellow-200 bg-yellow-50 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <AlertTriangle className="h-4 w-4 text-yellow-600" />
                         <p className="text-xs text-yellow-800 font-medium">Low Stock</p>
@@ -229,7 +229,7 @@ export default function InventoryPage() {
                     <p className="text-2xl font-bold text-yellow-800">{stats.lowStockCount}</p>
                 </Card>
 
-                <Card className="p-4 border-red-200 bg-red-50">
+                <Card className="p-4 border-red-200 bg-red-50 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <TrendingDown className="h-4 w-4 text-red-600" />
                         <p className="text-xs text-red-800 font-medium">Out of Stock</p>
@@ -237,7 +237,7 @@ export default function InventoryPage() {
                     <p className="text-2xl font-bold text-red-800">{stats.outOfStockCount}</p>
                 </Card>
 
-                <Card className="p-4 border-orange-200 bg-orange-50">
+                <Card className="p-4 border-orange-200 bg-orange-50 shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                         <Calendar className="h-4 w-4 text-orange-600" />
                         <p className="text-xs text-orange-800 font-medium">Expiring Soon</p>
@@ -248,13 +248,13 @@ export default function InventoryPage() {
 
             {/* Search and Filters */}
             <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4">
+                <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
                     <Search className="h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search products by name, category, or batch..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border-0 bg-transparent"
+                        className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                 </div>
 
@@ -293,7 +293,7 @@ export default function InventoryPage() {
             {/* Products List - Desktop Table & Mobile Cards */}
             <div className="space-y-4">
                 {/* Desktop View */}
-                <Card className="hidden md:block overflow-hidden">
+                <Card className="hidden md:block overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-muted/50 border-b">
@@ -472,8 +472,8 @@ export default function InventoryPage() {
             </div>
 
             {filteredProducts.length === 0 && !loading && (
-                <Card className="p-8 text-center">
-                    <p className="text-muted-foreground">No products found</p>
+                <Card className="p-8 text-center text-muted-foreground">
+                    No products found
                 </Card>
             )}
 

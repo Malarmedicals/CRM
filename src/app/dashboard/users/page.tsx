@@ -260,7 +260,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -300,7 +300,7 @@ export default function UsersPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4">
+        <Card className="p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <UsersIcon className="h-4 w-4 text-blue-600" />
             <p className="text-xs text-muted-foreground">Total Users</p>
@@ -308,7 +308,7 @@ export default function UsersPage() {
           <p className="text-2xl font-bold">{stats.total}</p>
         </Card>
 
-        <Card className="p-4 border-red-200 bg-red-50">
+        <Card className="p-4 border-red-200 bg-red-50 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Shield className="h-4 w-4 text-red-600" />
             <p className="text-xs text-red-800 font-medium">Admins</p>
@@ -316,7 +316,7 @@ export default function UsersPage() {
           <p className="text-2xl font-bold text-red-800">{stats.admins}</p>
         </Card>
 
-        <Card className="p-4 border-blue-200 bg-blue-50">
+        <Card className="p-4 border-blue-200 bg-blue-50 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <UserCheck className="h-4 w-4 text-blue-600" />
             <p className="text-xs text-blue-800 font-medium">Managers</p>
@@ -324,7 +324,7 @@ export default function UsersPage() {
           <p className="text-2xl font-bold text-blue-800">{stats.managers}</p>
         </Card>
 
-        <Card className="p-4 border-purple-200 bg-purple-50">
+        <Card className="p-4 border-purple-200 bg-purple-50 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <UsersIcon className="h-4 w-4 text-purple-600" />
             <p className="text-xs text-purple-800 font-medium">Customers</p>
@@ -337,19 +337,19 @@ export default function UsersPage() {
 
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4">
+        <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name, email, or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent"
+            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
 
         <div className="flex gap-2 flex-wrap">
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32 shadow-sm">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -365,7 +365,7 @@ export default function UsersPage() {
       {/* Users List - Desktop Table & Mobile Cards */}
       <div className="space-y-4">
         {/* Desktop View */}
-        <Card className="hidden md:block overflow-hidden">
+        <Card className="hidden md:block overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50 border-b">
@@ -474,7 +474,7 @@ export default function UsersPage() {
         {/* Mobile View */}
         <div className="md:hidden space-y-4">
           {filteredUsers.map((user) => (
-            <Card key={user.id} className="p-4">
+            <Card key={user.id} className="p-4 shadow-sm">
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -534,7 +534,7 @@ export default function UsersPage() {
       </div>
 
       {filteredUsers.length === 0 && !loading && (
-        <Card className="p-8 text-center">
+        <Card className="p-8 text-center shadow-sm">
           <UsersIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <p className="text-muted-foreground">
             {users.length === 0 ? 'No users found' : 'No users matching your filters'}
@@ -616,7 +616,7 @@ export default function UsersPage() {
 
           {userToDelete && (
             <div className="py-4">
-              <Card className="p-4 bg-red-50 border-red-200">
+              <Card className="p-4 bg-red-50 border-red-200 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
                     <span className="font-semibold text-red-800">

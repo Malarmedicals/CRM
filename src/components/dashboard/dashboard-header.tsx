@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Search, Bell, Calendar as CalendarIcon, Filter, Menu, ChevronRight } from "lucide-react"
+import { Search, Bell, Calendar as CalendarIcon, Menu, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -32,9 +32,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             <div className="flex items-center gap-3">
                 <CalendarPopover />
 
-                <Button variant="outline" size="icon" className="rounded-xl border-border text-muted-foreground hover:text-foreground">
-                    <Filter className="h-4 w-4" />
-                </Button>
+
                 <NotificationBell />
                 <div className="h-8 w-px bg-border mx-1" />
                 <div className="flex items-center gap-2">

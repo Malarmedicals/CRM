@@ -25,11 +25,11 @@ export default function NotificationsPage() {
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
     return (
-        <div className="container mx-auto p-6 max-w-4xl">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>
-                    <p className="text-slate-500">Stay updated with all CRM activities.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Notifications</h1>
+                    <p className="text-muted-foreground mt-1">Stay updated with all CRM activities.</p>
                 </div>
                 <div className="flex gap-2">
                     {unreadCount > 0 && (
@@ -48,7 +48,7 @@ export default function NotificationsPage() {
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                             <Input
                                 placeholder="Search notifications..."
-                                className="pl-9 bg-white"
+                                className="pl-9 bg-white focus-visible:ring-0 focus-visible:ring-offset-0"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />

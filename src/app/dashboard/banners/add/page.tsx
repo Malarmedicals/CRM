@@ -63,9 +63,9 @@ export default function AddBannerPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold">Add New Banner</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Add New Banner</h1>
                 <p className="text-muted-foreground mt-1">Create a new banner for the home page</p>
             </div>
 
@@ -82,7 +82,7 @@ export default function AddBannerPage() {
                     </div>
                 </div>
 
-                <Card>
+                <Card className="shadow-sm">
                     <CardHeader>
                         <CardTitle>All Banners</CardTitle>
                     </CardHeader>

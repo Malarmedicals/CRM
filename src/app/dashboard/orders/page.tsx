@@ -202,11 +202,11 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-3xl font-bold flex items-center gap-2 tracking-tight">
             📦 Order Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -238,13 +238,13 @@ export default function OrdersPage() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4">
+      <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by Order ID, Customer ID, Name, or Phone..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="border-0 bg-transparent"
+          className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
 
@@ -283,7 +283,7 @@ export default function OrdersPage() {
       {/* Orders List - Desktop Table & Mobile Cards */}
       <div className="space-y-4">
         {/* Desktop View */}
-        <Card className="hidden md:block overflow-hidden">
+        <Card className="hidden md:block overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50 border-b">
@@ -547,7 +547,7 @@ export default function OrdersPage() {
         {/* Mobile View */}
         <div className="md:hidden space-y-4">
           {filteredOrders.map(order => (
-            <Card key={order.id} className="p-4 space-y-3">
+            <Card key={order.id} className="p-4 space-y-3 shadow-sm">
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -625,8 +625,8 @@ export default function OrdersPage() {
       </div>
 
       {filteredOrders.length === 0 && !loading && (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">No orders found</p>
+        <Card className="p-8 text-center text-muted-foreground shadow-sm">
+          No orders found
         </Card>
       )}
 
@@ -644,17 +644,17 @@ export default function OrdersPage() {
             <div className="space-y-4 py-4">
               {/* Order Summary Cards */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground mb-1">Order ID</p>
                   <p className="font-mono text-sm font-semibold">#{selectedOrder.id.substring(0, 8)}</p>
                 </Card>
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground mb-1">Date</p>
                   <p className="text-sm">
                     {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString() : 'N/A'}
                   </p>
                 </Card>
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
                     <CreditCard className="h-3 w-3" />
                     Payment Method
@@ -663,7 +663,7 @@ export default function OrdersPage() {
                     {selectedOrder.paymentMethod || 'N/A'}
                   </p>
                 </Card>
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                   <p className="text-xs text-muted-foreground mb-1">Delivery</p>
                   {getDeliveryStatusBadge(selectedOrder.deliveryStatus)}
                 </Card>
@@ -671,7 +671,7 @@ export default function OrdersPage() {
 
               {/* Customer Info */}
               {selectedOrder.customerName && (
-                <Card className="p-4">
+                <Card className="p-4 shadow-sm">
                   <div className="flex items-center gap-2">
                     <User className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -683,7 +683,7 @@ export default function OrdersPage() {
               )}
 
               {/* Prescription Status */}
-              <Card className="p-4">
+              <Card className="p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Prescription Status</span>
                   {selectedOrder.prescriptionVerified ? (
@@ -695,7 +695,7 @@ export default function OrdersPage() {
               </Card>
 
               {/* Products with Category */}
-              <Card className="p-4">
+              <Card className="p-4 shadow-sm">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Package className="h-5 w-5" />
                   Products ({selectedOrder.products?.length || 0})
@@ -727,7 +727,7 @@ export default function OrdersPage() {
               )}
 
               {/* Total */}
-              <Card className="p-4 bg-primary/5">
+              <Card className="p-4 bg-primary/5 shadow-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold">Total Amount</span>
                   <span className="text-2xl font-bold">₹{(selectedOrder.totalAmount || 0).toFixed(2)}</span>

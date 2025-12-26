@@ -71,10 +71,10 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Product Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
           <p className="text-muted-foreground mt-1">Manage medicines and products</p>
         </div>
         <Button
@@ -97,13 +97,13 @@ export default function ProductsPage() {
         />
       )}
 
-      <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4">
+      <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by name or batch number..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="border-0 bg-transparent"
+          className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
 
@@ -122,8 +122,8 @@ export default function ProductsPage() {
       </div>
 
       {filteredProducts.length === 0 && !loading && (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">No products found</p>
+        <Card className="p-8 text-center text-muted-foreground">
+          No products found
         </Card>
       )}
     </div>

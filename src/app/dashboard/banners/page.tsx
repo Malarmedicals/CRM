@@ -59,7 +59,7 @@ export default function BannersPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Banners</h1>
@@ -73,7 +73,7 @@ export default function BannersPage() {
                 </Link>
             </div>
 
-            <Card>
+            <Card className="shadow-sm">
                 <CardHeader>
                     <CardTitle>All Banners</CardTitle>
                 </CardHeader>

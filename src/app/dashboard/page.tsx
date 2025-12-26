@@ -31,6 +31,8 @@ export default function DashboardPage() {
     totalOrders: 0,
     totalSales: 0,
     pendingShipments: 0,
+    orderTrend: 0,
+    revenueTrend: 0,
   })
   const [salesData, setSalesData] = useState<{ name: string; value: number }[]>([])
   const [categoryData, setCategoryData] = useState<{ name: string; value: number }[]>([])
@@ -49,8 +51,43 @@ export default function DashboardPage() {
             orderService.getRecentOrders(30)
           ])
 
-          // Calculate Stats
-          const totalSales = orders.reduce((sum, order) => sum + order.totalAmount, 0)
+          // Calculate Stats for Today
+          const now = new Date()
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          const yesterdayStart = new Date(todayStart)
+          yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+
+          // Helper to filter orders by date range
+          const getOrdersInDateRange = (start: Date, end?: Date) => {
+            return orders.filter(order => {
+              if (!order.createdAt) return false
+              const orderDate = new Date(order.createdAt)
+              if (end) {
+                return orderDate >= start && orderDate < end
+              }
+              return orderDate >= start
+            })
+          }
+
+          const todayOrders = getOrdersInDateRange(todayStart)
+          const yesterdayOrders = getOrdersInDateRange(yesterdayStart, todayStart)
+
+          const todayOrdersCount = todayOrders.length
+          const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+
+          const yesterdayOrdersCount = yesterdayOrders.length
+          const yesterdayRevenue = yesterdayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+
+          // Calculate Trends function
+          const calculateTrend = (current: number, previous: number) => {
+            if (previous === 0) return current > 0 ? 100 : 0
+            return Math.round(((current - previous) / previous) * 100)
+          }
+
+          const orderTrend = calculateTrend(todayOrdersCount, yesterdayOrdersCount)
+          const revenueTrend = calculateTrend(todayRevenue, yesterdayRevenue)
+
+          // Calculate Pending Shipments (from all recent orders)
           const pendingShipments = orders.filter(
             order => order.deliveryStatus !== 'delivered' && order.status !== 'cancelled'
           ).length
@@ -59,12 +96,11 @@ export default function DashboardPage() {
             totalProducts: productCount,
             lowStockCount: lowStock.length,
             expiringCount: expiring.length,
-            // Note: This is now "Orders (Last 30 Days)" effectively. 
-            // If we want total lifetime orders, we'd need a separate count query.
-            // But for dashboard "snapshot", this is often more relevant or acceptable for speed.
-            totalOrders: orders.length,
-            totalSales,
+            totalOrders: todayOrdersCount,
+            totalSales: todayRevenue,
             pendingShipments,
+            orderTrend,
+            revenueTrend,
           })
 
           // Process Sales Overview (Last 30 Days)
@@ -162,7 +198,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-muted/40 pb-10">
-      <main className="px-6 py-8 space-y-8 max-w-[1600px] mx-auto animate-fade-in">
+      <main className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto animate-fade-in">
         {/* Welcome Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -180,7 +216,7 @@ export default function DashboardPage() {
             title="Total Orders Today"
             value={stats.totalOrders}
             icon={ShoppingBag}
-            trend={{ value: 12, isPositive: true }}
+            trend={{ value: Math.abs(stats.orderTrend), isPositive: stats.orderTrend >= 0 }}
             color="teal"
             href="/dashboard/orders"
           />
@@ -188,7 +224,7 @@ export default function DashboardPage() {
             title="Revenue Today"
             value={`₹${stats.totalSales.toLocaleString()}`}
             icon={DollarSign}
-            trend={{ value: 8, isPositive: true }}
+            trend={{ value: Math.abs(stats.revenueTrend), isPositive: stats.revenueTrend >= 0 }}
             color="blue"
             href="/dashboard/orders"
           />

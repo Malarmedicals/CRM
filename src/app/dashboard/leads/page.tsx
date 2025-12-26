@@ -76,10 +76,10 @@ export default function LeadsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Lead Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Lead Management</h1>
           <p className="text-muted-foreground mt-1">Manage and track customer leads</p>
         </div>
         <Button
@@ -105,19 +105,19 @@ export default function LeadsPage() {
       )}
 
       <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4">
+        <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search leads..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent"
+            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
         <select
           value={filterStage}
           onChange={(e) => setFilterStage(e.target.value as any)}
-          className="px-4 py-2 border border-input rounded-lg bg-background text-foreground"
+          className="px-4 py-2 border border-input rounded-lg bg-background text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
         >
           <option value="all">All Stages</option>
           <option value="new">New</option>
@@ -129,7 +129,7 @@ export default function LeadsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredLeads.map((lead) => (
-          <Card key={lead.id} className="p-4">
+          <Card key={lead.id} className="p-4 shadow-sm">
             <div className="space-y-3">
               <div>
                 <h3 className="font-semibold text-lg">{lead.name || 'Unnamed Lead'}</h3>
@@ -191,8 +191,8 @@ export default function LeadsPage() {
       </div>
 
       {filteredLeads.length === 0 && !loading && (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">No leads found</p>
+        <Card className="p-8 text-center text-muted-foreground">
+          No leads found
         </Card>
       )}
     </div>

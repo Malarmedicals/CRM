@@ -88,11 +88,11 @@ export default function PrescriptionsPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="max-w-7xl mx-auto space-y-8">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-3xl font-bold flex items-center gap-2 tracking-tight">
                         📑 Prescription Management
                     </h1>
                     <p className="text-muted-foreground mt-1">
@@ -140,19 +140,19 @@ export default function PrescriptionsPage() {
                 </div>
 
                 {/* Search */}
-                <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 w-full md:w-auto">
+                <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 w-full md:w-auto shadow-sm">
                     <Search className="h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search ID, Name, Phone..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border-0 bg-transparent min-w-[250px]"
+                        className="border-0 bg-transparent min-w-[250px] focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                 </div>
             </div>
 
             {/* List */}
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-muted/50 border-b">

@@ -90,13 +90,13 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     } : {
       name: '',
       description: '',
-      price: 0,
-      discount: 0,
+      price: undefined,
+      discount: undefined,
       category: '',
       subcategory: '',
       batchNumber: '',
       expiryDate: new Date(),
-      stockQuantity: 0,
+      stockQuantity: undefined,
       images: [],
       primaryImage: '',
       additionalImages: [],
@@ -110,7 +110,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       brandName: '',
       stockStatus: 'in-stock',
       estimatedDelivery: '',
-      freeShippingThreshold: 0,
+      freeShippingThreshold: undefined,
     }
   )
   const [error, setError] = useState('')
@@ -119,8 +119,8 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
   const [colorVariantInput, setColorVariantInput] = useState({
     colorName: '',
     variantName: '',
-    originalPrice: 0,
-    discountPrice: 0,
+    originalPrice: undefined as unknown as number,
+    discountPrice: undefined as unknown as number,
     unit: 'per-piece',
   })
   const [materialInput, setMaterialInput] = useState('')
@@ -263,7 +263,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     setFormData((prev) => ({
       ...prev,
       [name]: ['price', 'discount', 'stockQuantity', 'gstRate', 'freeShippingThreshold'].includes(name)
-        ? parseFloat(value)
+        ? (value === '' ? undefined : parseFloat(value))
         : name === 'expiryDate'
           ? new Date(value)
           : value,
@@ -324,7 +324,11 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     if (colorVariantInput.colorName && colorVariantInput.variantName) {
       const newVariant: ColorVariant = {
         id: Date.now().toString(),
-        ...colorVariantInput,
+        colorName: colorVariantInput.colorName,
+        variantName: colorVariantInput.variantName,
+        originalPrice: colorVariantInput.originalPrice || 0,
+        discountPrice: colorVariantInput.discountPrice || 0,
+        unit: colorVariantInput.unit
       }
       setFormData((prev) => ({
         ...prev,
@@ -333,8 +337,8 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       setColorVariantInput({
         colorName: '',
         variantName: '',
-        originalPrice: 0,
-        discountPrice: 0,
+        originalPrice: undefined as unknown as number,
+        discountPrice: undefined as unknown as number,
         unit: 'per-piece',
       })
     }
@@ -677,7 +681,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="stockQuantity"
-                  value={formData.stockQuantity || 0}
+                  value={formData.stockQuantity ?? ''}
                   onChange={handleInputChange}
                   placeholder="1"
                   required
@@ -700,7 +704,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="freeShippingThreshold"
-                  value={formData.freeShippingThreshold || 0}
+                  value={formData.freeShippingThreshold ?? ''}
                   onChange={handleInputChange}
                   placeholder="e.g., 5500"
                 />
@@ -815,7 +819,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="price"
-                  value={formData.price || 0}
+                  value={formData.price ?? ''}
                   onChange={handleInputChange}
                   placeholder="0.00"
                   step="0.01"
@@ -828,7 +832,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="discount"
-                  value={formData.discount || 0}
+                  value={formData.discount ?? ''}
                   onChange={handleInputChange}
                   placeholder="0.00"
                   step="0.01"
@@ -879,17 +883,17 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   placeholder="Original Price (₹)"
-                  value={colorVariantInput.originalPrice}
+                  value={colorVariantInput.originalPrice ?? ''}
                   onChange={(e) =>
-                    setColorVariantInput((prev) => ({ ...prev, originalPrice: parseFloat(e.target.value) }))
+                    setColorVariantInput((prev) => ({ ...prev, originalPrice: e.target.value === '' ? undefined as unknown as number : parseFloat(e.target.value) }))
                   }
                 />
                 <Input
                   type="number"
                   placeholder="Discount Price (₹)"
-                  value={colorVariantInput.discountPrice}
+                  value={colorVariantInput.discountPrice ?? ''}
                   onChange={(e) =>
-                    setColorVariantInput((prev) => ({ ...prev, discountPrice: parseFloat(e.target.value) }))
+                    setColorVariantInput((prev) => ({ ...prev, discountPrice: e.target.value === '' ? undefined as unknown as number : parseFloat(e.target.value) }))
                   }
                 />
               </div>
