@@ -164,7 +164,7 @@ export interface Banner {
   link: string
   seoDescription: string
   isActive: boolean
-  mainCategory?: string
+  category?: string
   categoryTag?: string
   showCategoryTag?: boolean
   priceDisplay?: string

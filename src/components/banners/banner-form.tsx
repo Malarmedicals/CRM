@@ -20,25 +20,29 @@ import { getCroppedImg } from '@/lib/utils/cropImage'
 interface BannerFormProps {
     onSuccess: () => void
     onCancel: () => void
+    initialData?: Banner
 }
 
-export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
+export default function BannerForm({ onSuccess, onCancel, initialData }: BannerFormProps) {
     const [formData, setFormData] = useState<Partial<Banner>>({
-        title: '',
-        mainCategory: '',
-        categoryTag: '',
-        showCategoryTag: false,
-        priceDisplay: '',
-        description: '',
-        seoTitle: '',
-        seoDescription: '',
-        linkProductId: '',
-        bannerType: 'Single Banner',
-        isActive: true,
-        image: ''
+        title: initialData?.title || '',
+        category: initialData?.category || '',
+        categoryTag: initialData?.categoryTag || '',
+        showCategoryTag: initialData?.showCategoryTag || false,
+        priceDisplay: initialData?.priceDisplay || '',
+        description: initialData?.description || '',
+        seoTitle: initialData?.seoTitle || '',
+        seoDescription: initialData?.seoDescription || '',
+        linkProductId: initialData?.linkProductId || '',
+        bannerType: initialData?.bannerType || 'Single Banner',
+        isActive: initialData?.isActive ?? true,
+        image: initialData?.image || ''
     })
 
-    const [imageSrc, setImageSrc] = useState<string | null>(null)
+    const [imageSrc, setImageSrc] = useState<string | null>(initialData?.image || null)
+    // Only set crop/zoom if we uploaded a NEW image
+    const [isNewImage, setIsNewImage] = useState(false)
+
     const [crop, setCrop] = useState({ x: 0, y: 0 })
     const [zoom, setZoom] = useState(1)
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
@@ -73,7 +77,10 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0]
             const reader = new FileReader()
-            reader.addEventListener('load', () => setImageSrc(reader.result as string))
+            reader.addEventListener('load', () => {
+                setImageSrc(reader.result as string)
+                setIsNewImage(true)
+            })
             reader.readAsDataURL(file)
         }
     }
@@ -84,30 +91,36 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
         setError('')
 
         try {
-            if (!imageSrc || !croppedAreaPixels) {
-                throw new Error('Please upload and crop an image')
+            if (!imageSrc && !formData.image) {
+                throw new Error('Please upload an image')
             }
 
-            if (!formData.mainCategory) throw new Error('Main Category is required')
-            if (!formData.linkProductId) throw new Error('Linked Product is required')
+            if (!formData.category) throw new Error('Category is required')
+
 
             // 1. Get cropped image blob
-            const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels)
-            if (!croppedImageBlob) throw new Error('Failed to crop image')
+            let imageUrl = formData.image
 
-            // 2. Upload image
-            const filename = `banners/${Date.now()}.jpg`
-            const imageUrl = await bannerService.uploadImage(croppedImageBlob, filename)
+            if (isNewImage && imageSrc && croppedAreaPixels) {
+                const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels)
+                if (!croppedImageBlob) throw new Error('Failed to crop image')
+
+                const filename = `banners/${Date.now()}.jpg`
+                imageUrl = await bannerService.uploadImage(croppedImageBlob, filename)
+            } else if (!imageUrl) {
+                throw new Error('Please upload an image')
+            }
+
 
             // 3. Find full product link/details if needed, but we store ID
             // We can also construct a link url from product ID
             const selectedProduct = products.find(p => p.id === formData.linkProductId)
-            const linkUrl = selectedProduct ? `/products/${selectedProduct.id}` : ''
+            const linkUrl = selectedProduct ? `/products/${selectedProduct.id}` : '/products'
 
             // 4. Save banner data
-            await bannerService.addBanner({
+            const bannerData = {
                 title: formData.title || '',
-                mainCategory: formData.mainCategory,
+                category: formData.category,
                 categoryTag: formData.categoryTag || '',
                 showCategoryTag: formData.showCategoryTag || false,
                 priceDisplay: formData.priceDisplay || '',
@@ -115,11 +128,17 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                 seoTitle: formData.seoTitle || '',
                 seoDescription: formData.seoDescription || '',
                 linkProductId: formData.linkProductId,
-                link: linkUrl, // Backward compatibility or actual link usage
+                link: linkUrl,
                 bannerType: formData.bannerType as any,
                 isActive: formData.isActive || false,
                 image: imageUrl,
-            })
+            }
+
+            if (initialData?.id) {
+                await bannerService.updateBanner(initialData.id, bannerData)
+            } else {
+                await bannerService.addBanner(bannerData)
+            }
 
             onSuccess()
         } catch (err: any) {
@@ -147,13 +166,13 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="mainCategory">Main Category *</Label>
+                        <Label htmlFor="category">Category *</Label>
                         <Select
-                            value={formData.mainCategory}
-                            onValueChange={(val) => setFormData({ ...formData, mainCategory: val })}
+                            value={formData.category}
+                            onValueChange={(val) => setFormData({ ...formData, category: val })}
                         >
-                            <SelectTrigger id="mainCategory">
-                                <SelectValue placeholder="Select Main Category" />
+                            <SelectTrigger id="category">
+                                <SelectValue placeholder="Select Category" />
                             </SelectTrigger>
                             <SelectContent>
                                 {categories.map(cat => (
@@ -256,7 +275,7 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="linkProductId">Link Product *</Label>
+                        <Label htmlFor="linkProductId">Link Product</Label>
                         <Select
                             value={formData.linkProductId}
                             onValueChange={(val) => setFormData({ ...formData, linkProductId: val })}
@@ -290,12 +309,41 @@ export default function BannerForm({ onSuccess, onCancel }: BannerFormProps) {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    <div className="flex flex-col justify-end pb-2">
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                id="isActive"
+                                checked={formData.isActive}
+                                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                            />
+                            <Label htmlFor="isActive" className="cursor-pointer">Active Status</Label>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Image Section */}
                 <div className="space-y-3 pt-4 border-t">
                     <Label className="text-base font-semibold">Banner Image *</Label>
-                    {!imageSrc ? (
+
+                    {!isNewImage && imageSrc ? (
+                        <div className="relative group rounded-xl overflow-hidden border">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={imageSrc} alt="Preview" className="w-full h-[300px] object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => {
+                                        setImageSrc(null)
+                                        setIsNewImage(true)
+                                    }}
+                                >
+                                    Change Image
+                                </Button>
+                            </div>
+                        </div>
+                    ) : !imageSrc ? (
                         <div className="mt-2 border-2 border-dashed border-border rounded-xl p-10 text-center hover:bg-muted/50 transition-all duration-200 cursor-pointer group">
                             <Input
                                 type="file"

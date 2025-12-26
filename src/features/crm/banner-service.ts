@@ -1,5 +1,5 @@
 import { db, storage } from '@/lib/firebase'
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp } from 'firebase/firestore'
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, getDoc, query, orderBy, Timestamp, serverTimestamp } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { Banner } from '@/lib/models/types'
 
@@ -10,8 +10,8 @@ export const bannerService = {
         try {
             const docRef = await addDoc(collection(db, COLLECTION_NAME), {
                 ...bannerData,
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
             })
             return docRef.id
         } catch (error) {
@@ -36,12 +36,31 @@ export const bannerService = {
         }
     },
 
+    async getBannerById(id: string) {
+        try {
+            const docRef = doc(db, COLLECTION_NAME, id)
+            const docSnap = await getDoc(docRef)
+            if (docSnap.exists()) {
+                return {
+                    id: docSnap.id,
+                    ...docSnap.data(),
+                    createdAt: docSnap.data().createdAt?.toDate(),
+                    updatedAt: docSnap.data().updatedAt?.toDate(),
+                } as Banner
+            }
+            return null
+        } catch (error) {
+            console.error('Error getting banner:', error)
+            throw error
+        }
+    },
+
     async updateBanner(id: string, updates: Partial<Banner>) {
         try {
             const docRef = doc(db, COLLECTION_NAME, id)
             await updateDoc(docRef, {
                 ...updates,
-                updatedAt: Timestamp.now(),
+                updatedAt: serverTimestamp(),
             })
         } catch (error) {
             console.error('Error updating banner:', error)

@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Banners: Public read, authenticated write
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Default: Authenticated users can read/write everything (for now)
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

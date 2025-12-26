@@ -51,6 +51,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       icon: Package,
       subItems: [
         { href: '/dashboard/products', label: 'Product Management' },
+
         { href: '/dashboard/banners/add', label: 'Add Banner' },
       ]
     },
