@@ -43,6 +43,7 @@ export interface Product {
   createdAt: Date
   updatedAt: Date
   isSensitive?: boolean // Requires valid prescription
+  healthConcern?: string // Specific health concern filter
 }
 
 export interface ProductDetail {

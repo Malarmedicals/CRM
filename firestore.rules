@@ -1,196 +1,137 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // -----------------------------
-    // Helper Functions
-    // -----------------------------
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    // Checks whether requester exists in users collection and has role 'admin' or 'manager'
+    function isAuthenticated() { return request.auth != null; }
     function isAdminOrManager() {
-      return request.auth != null &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
-          in ['admin', 'manager'];
-    }
-
-    // Defensive check to avoid exposing sensitive user fields to non-admin users.
-    function isSafePublicUserData() {
-      return resource != null &&
-        !(('role' in resource.data) ||
-          ('phone' in resource.data) ||
-          ('address' in resource.data) ||
-          ('permissions' in resource.data));
+      return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'manager'];
     }
 
     // -----------------------------
-    // Users Collection
+    // E-Commerce Notifications (Frontend)
     // -----------------------------
-    match /users/{userId} {
-      /*
-       * READ:
-       *  - owner: full read
-       *  - admin/manager: full read
-       *  - other authenticated users: only if the document contains no sensitive fields (defensive)
-       */
-      allow read: if isAuthenticated() && (
-        request.auth.uid == userId ||
-        isAdminOrManager() ||
-        isSafePublicUserData()
-      );
-
-      // Create: allow user to create their own profile document
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-
-      // Update/Delete: only admin/manager
-      allow update, delete: if isAdminOrManager();
-    }
-
-    // Allow listing users for authenticated clients (server-side rules still enforce per-doc reads)
-    match /users {
+    match /eCommerceNotifications/{notificationId} {
+      // Allow authenticated users to list/query notifications (for subscriptions)
       allow list: if isAuthenticated();
+      
+      // Allow reading specific notification if you are the owner or admin
+      allow get: if isAuthenticated() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid || 
+        !('userId' in resource.data) ||
+        isAdminOrManager()
+      );
+      
+      // Allow creating notifications
+      allow create: if isAuthenticated(); 
+      
+      // Allow marking as read (only isRead field)
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        !('userId' in resource.data) ||
+        isAdminOrManager()
+      );
+      
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        isAdminOrManager()
+      );
     }
 
     // -----------------------------
-    // Orders Collection
+    // User Notifications (CRM/Admin)
     // -----------------------------
-    // -----------------------------
-    // Orders Collection
-    // -----------------------------
-    match /orders/{orderId} {
-      // Read: owner or admin/manager
-      allow read: if isAuthenticated() &&
-                  (resource.data.userId == request.auth.uid || isAdminOrManager());
-
-      // Create: Allow Public for Storefront Demo (Guest Checkout)
-      allow create: if true;
-
-      // Update: admin/manager can update anything; owner can set status to 'cancelled' (example)
-      allow update: if isAdminOrManager() ||
-                    (isAuthenticated() &&
-                     resource.data.userId == request.auth.uid &&
-                     request.resource.data.status == 'cancelled');
-
-      // Delete: admin/manager only
+    match /user_notifications/{notificationId} {
+      // Allow reading if you are the owner (check both userId and metadata.userId)
+      allow read: if isAuthenticated() && (
+        resource == null ||
+        resource.data.userId == request.auth.uid || 
+        resource.data.metadata.userId == request.auth.uid || 
+        isAdminOrManager()
+      );
+      
+      // Allow creating notifications (triggered by CRM)
+      allow create: if isAuthenticated(); 
+      
+      // Allow marking as read
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.metadata.userId == request.auth.uid || 
+        isAdminOrManager()
+      );
+      
       allow delete: if isAdminOrManager();
     }
 
     // -----------------------------
-    // Products Collection
-    // -----------------------------
-    match /products/{productId} {
-      // Public read for e-commerce storefront
-      allow read: if true;
-
-      // Create/Update/Delete: admin/manager only
-      allow create, update, delete: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // Banners Collection
-    // -----------------------------
-    match /banners/{bannerId} {
-      allow read: if true;
-      allow create, update, delete: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // Categories Collection
-    // -----------------------------
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow create, update, delete: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // Leads Collection
-    // -----------------------------
-    match /leads/{leadId} {
-      // Public forms may create leads
-      allow create: if true;
-
-      // Read/Update/Delete: admin/manager only
-      allow read, update, delete: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // CRM Actions Collection
-    // -----------------------------
-    match /crmActions/{actionId} {
-      allow read, write: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // Email Templates & Queue
-    // -----------------------------
-    match /emailTemplates/{templateId} {
-      allow read, write: if isAdminOrManager();
-    }
-
-    match /emailQueue/{emailId} {
-      allow read, write: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // WhatsApp Templates & Queue
-    // -----------------------------
-    match /whatsappTemplates/{templateId} {
-      allow read, write: if isAdminOrManager();
-    }
-
-    match /whatsappQueue/{messageId} {
-      allow read, write: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // Prescriptions Collection
-    // -----------------------------
-    match /prescriptions/{prescriptionId} {
-      allow read: if isAuthenticated() && 
-                  (resource.data.userId == request.auth.uid || isAdminOrManager());
-      allow create: if true;
-      allow update, delete: if isAdminOrManager();
-    }
-
-    // -----------------------------
-    // Notifications Collection
+    // Legacy Notifications (Admin/CRM)
     // -----------------------------
     match /notifications/{notificationId} {
-      // Read: recipients or admin/manager
-      allow read: if isAuthenticated() &&
-                    (resource.data.userId == request.auth.uid || isAdminOrManager());
-
-      // Create: Allow Public for Storefront Demo (Triggers)
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.metadata.userId == request.auth.uid || 
+        isAdminOrManager()
+      );
       allow create: if true;
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.metadata.userId == request.auth.uid || 
+        isAdminOrManager()
+      );
+    }
 
-      // Update/Delete: admin/manager only
+    // -----------------------------
+    // Standard Collections
+    // -----------------------------
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdminOrManager());
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if isAdminOrManager();
+      allow list: if isAuthenticated();
+    }
+
+    match /prescriptions/{prescriptionId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdminOrManager());
+      allow create: if true;
       allow update, delete: if isAdminOrManager();
     }
 
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdminOrManager());
+      allow create: if true;
+      allow update: if isAdminOrManager() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+    
+    match /products/{productId} { 
+      allow read: if true; 
+      allow create, delete: if isAdminOrManager();
+      // Allow authenticated users to update only stock-related fields
+      allow update: if isAdminOrManager() || (
+        isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['stockQuantity', 'stock', 'stockStatus', 'updatedAt'])
+      );
+    }
+    
+    match /categories/{categoryId} { allow read: if true; allow write: if isAdminOrManager(); }
+    
     // -----------------------------
-    // Calendar Events (development)
+    // Health Concerns Collection
     // -----------------------------
-    match /events/{eventId} {
-      // Development: open read/write. For production, change to:
-      // allow read: if true; allow create/update/delete: if isAdminOrManager();
-      allow read, write: if true;
+    match /healthConcerns/{concernId} {
+       allow read: if true;
+       allow create, update, delete: if isAdminOrManager();
     }
 
-    // -----------------------------
-    // Stock Movements
-    // -----------------------------
-    match /stockMovements/{movementId} {
-      allow read, create, update, delete: if isAdminOrManager();
-    }
+    match /banners/{bannerId} { allow read: if true; allow write: if isAdminOrManager(); }
+    match /leads/{leadId} { allow create: if true; allow read, update, delete: if isAdminOrManager(); }
 
-    // -----------------------------
-    // Fallback: deny everything else by default
-    // -----------------------------
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    match /crmActions/{actionId} { allow read, write: if isAdminOrManager(); }
+    match /emailTemplates/{templateId} { allow read, write: if isAdminOrManager(); }
+    match /emailQueue/{emailId} { allow read, write: if isAdminOrManager(); }
+    match /whatsappTemplates/{templateId} { allow read, write: if isAdminOrManager(); }
+    match /whatsappQueue/{messageId} { allow read, write: if isAdminOrManager(); }
+    match /stockMovements/{movementId} { allow read, write: if isAdminOrManager(); }
+    match /events/{eventId} { allow read, write: if true; }
+    match /{document=**} { allow read, write: if false; }
   }
 }

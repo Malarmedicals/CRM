@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertCircle, Plus, Trash2, GripVertical } from 'lucide-react'
-import { storage } from '@/lib/firebase'
+import { storage, db } from '@/lib/firebase'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
 import { categoryService } from '@/features/categories/category-service'
 
 interface ProductFormProps {
@@ -93,7 +94,9 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       price: undefined,
       discount: undefined,
       category: '',
+
       subcategory: '',
+      healthConcern: '',
       batchNumber: '',
       expiryDate: new Date(),
       stockQuantity: undefined,
@@ -132,6 +135,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     logo: null as File | null
   })
   const [categories, setCategories] = useState<string[]>([])
+  const [healthConcerns, setHealthConcerns] = useState<string[]>([])
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(product?.primaryImage || null)
   const [additionalImageFiles, setAdditionalImageFiles] = useState<File[]>([])
@@ -193,6 +197,42 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       }
     }
     loadCategories()
+  }, [])
+
+  const DEFAULT_HEALTH_CONCERNS = [
+    'Diabetes',
+    'Heart Care',
+    'Stomach Care',
+    'Liver Care',
+    'Bone, Joint & Muscle',
+    'Kidney Care',
+    'Derma Care'
+  ]
+
+  // Load Health Concerns
+  useEffect(() => {
+    const loadHealthConcerns = async () => {
+      try {
+        const q = query(collection(db, 'healthConcerns'))
+        const querySnapshot = await getDocs(q)
+        const concerns: string[] = []
+
+        querySnapshot.forEach((doc) => {
+          const data = doc.data()
+          if (data.name) {
+            concerns.push(data.name)
+          }
+        })
+
+        // Merge DB concerns with defaults
+        const combinedConcerns = Array.from(new Set([...concerns, ...DEFAULT_HEALTH_CONCERNS])).sort()
+        setHealthConcerns(combinedConcerns)
+      } catch (error) {
+        console.error('Error loading health concerns:', error)
+        setHealthConcerns(DEFAULT_HEALTH_CONCERNS.sort())
+      }
+    }
+    loadHealthConcerns()
   }, [])
 
   // State for new categories
@@ -263,7 +303,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
     setFormData((prev) => ({
       ...prev,
       [name]: ['price', 'discount', 'stockQuantity', 'gstRate', 'freeShippingThreshold'].includes(name)
-        ? (value === '' ? undefined : parseFloat(value))
+        ? (value === '' || isNaN(parseFloat(value)) ? undefined : parseFloat(value))
         : name === 'expiryDate'
           ? new Date(value)
           : value,
@@ -571,6 +611,25 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-2">Health Concern (Optional)</label>
+                <Select
+                  value={formData.healthConcern || ''}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, healthConcern: value }))}
+                >
+                  <SelectTrigger className="w-full border-input bg-background">
+                    <SelectValue placeholder="Select Health Concern" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {healthConcerns.map((concern) => (
+                      <SelectItem key={concern} value={concern}>
+                        {concern}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-2">Product Name *</label>
                 <Input
                   name="name"
@@ -681,7 +740,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="stockQuantity"
-                  value={formData.stockQuantity ?? ''}
+                  value={(formData.stockQuantity === undefined || formData.stockQuantity === null || isNaN(formData.stockQuantity)) ? '' : formData.stockQuantity}
                   onChange={handleInputChange}
                   placeholder="1"
                   required
@@ -704,7 +763,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="freeShippingThreshold"
-                  value={formData.freeShippingThreshold ?? ''}
+                  value={(formData.freeShippingThreshold === undefined || formData.freeShippingThreshold === null || isNaN(formData.freeShippingThreshold)) ? '' : formData.freeShippingThreshold}
                   onChange={handleInputChange}
                   placeholder="e.g., 5500"
                 />
@@ -819,7 +878,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="price"
-                  value={formData.price ?? ''}
+                  value={(formData.price === undefined || formData.price === null || isNaN(formData.price)) ? '' : formData.price}
                   onChange={handleInputChange}
                   placeholder="0.00"
                   step="0.01"
@@ -832,7 +891,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   name="discount"
-                  value={formData.discount ?? ''}
+                  value={(formData.discount === undefined || formData.discount === null || isNaN(formData.discount)) ? '' : formData.discount}
                   onChange={handleInputChange}
                   placeholder="0.00"
                   step="0.01"
@@ -883,17 +942,23 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Input
                   type="number"
                   placeholder="Original Price (₹)"
-                  value={colorVariantInput.originalPrice ?? ''}
+                  value={(colorVariantInput.originalPrice === undefined || colorVariantInput.originalPrice === null || isNaN(colorVariantInput.originalPrice)) ? '' : colorVariantInput.originalPrice}
                   onChange={(e) =>
-                    setColorVariantInput((prev) => ({ ...prev, originalPrice: e.target.value === '' ? undefined as unknown as number : parseFloat(e.target.value) }))
+                    setColorVariantInput((prev) => ({
+                      ...prev,
+                      originalPrice: (e.target.value === '' || isNaN(parseFloat(e.target.value))) ? undefined as unknown as number : parseFloat(e.target.value)
+                    }))
                   }
                 />
                 <Input
                   type="number"
                   placeholder="Discount Price (₹)"
-                  value={colorVariantInput.discountPrice ?? ''}
+                  value={(colorVariantInput.discountPrice === undefined || colorVariantInput.discountPrice === null || isNaN(colorVariantInput.discountPrice)) ? '' : colorVariantInput.discountPrice}
                   onChange={(e) =>
-                    setColorVariantInput((prev) => ({ ...prev, discountPrice: e.target.value === '' ? undefined as unknown as number : parseFloat(e.target.value) }))
+                    setColorVariantInput((prev) => ({
+                      ...prev,
+                      discountPrice: (e.target.value === '' || isNaN(parseFloat(e.target.value))) ? undefined as unknown as number : parseFloat(e.target.value)
+                    }))
                   }
                 />
               </div>
