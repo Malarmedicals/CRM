@@ -109,9 +109,15 @@ export const notificationService = {
     },
 
     // Subscribe to notifications (Real-time)
-    subscribe(callback: (notifications: Notification[]) => void, limitCount = 20) {
+    subscribe(callback: (notifications: Notification[]) => void, userId: string | null, limitCount = 20) {
+        if (!userId) {
+            callback([]);
+            return () => { };
+        }
+
         const q = query(
             collection(db, COLLECTION_NAME),
+            where('userId', '==', userId),
             orderBy('createdAt', 'desc'),
             limit(limitCount)
         );
@@ -123,6 +129,8 @@ export const notificationService = {
                 createdAt: (doc.data().createdAt as Timestamp)?.toDate() || new Date(),
             })) as Notification[];
             callback(notifications);
+        }, (error) => {
+            console.error("Notification subscription error:", error);
         });
     },
 

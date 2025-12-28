@@ -19,6 +19,17 @@ import { db } from '@/lib/firebase'
 import { Product } from '@/lib/models/types'
 
 export const productService = {
+  // Safe date converter
+  safeDate(date: any): Date {
+    if (!date) return new Date()
+    if (date?.toDate && typeof date.toDate === 'function') return date.toDate()
+    if (date instanceof Date) return date
+    if (typeof date === 'string' || typeof date === 'number') return new Date(date)
+    // Handle serialized timestamp { seconds: ..., nanoseconds: ... }
+    if (date?.seconds) return new Date(date.seconds * 1000)
+    return new Date()
+  },
+
   // Search products by name (prefix search)
   async searchProducts(searchTerm: string): Promise<Product[]> {
     try {
@@ -54,8 +65,8 @@ export const productService = {
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        createdAt: this.safeDate(doc.data().createdAt),
+        updatedAt: this.safeDate(doc.data().updatedAt),
       } as Product))
     } catch (error: any) {
       console.error('Failed to search products:', error)
@@ -96,12 +107,36 @@ export const productService = {
         docRef = doc(db, 'products', slug)
       }
 
-      await setDoc(docRef, {
+      // Helper to remove undefined values recursively
+      const removeUndefined = (obj: any): any => {
+        if (typeof obj !== 'object' || obj === null) return obj
+        if (obj instanceof Date) return obj
+        if (obj instanceof Timestamp) return obj
+        if (Array.isArray(obj)) return obj.map(removeUndefined)
+
+        return Object.entries(obj).reduce((acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = removeUndefined(value)
+          }
+          return acc
+        }, {} as any)
+      }
+
+      // Sanitize data
+      const sanitizedData = removeUndefined({
         ...productData,
-        stockStatus, // Ensure stockStatus is set
+        stockStatus,
+        stockQuantity: productData.stockQuantity ?? 0,
+        price: productData.price ?? 0,
+        discount: productData.discount ?? 0,
+        mrp: productData.mrp ?? 0,
+        sellingPrice: productData.sellingPrice ?? 0,
+        gstRate: productData.gstRate ?? 18,
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       })
+
+      await setDoc(docRef, sanitizedData)
       return slug
     } catch (error: any) {
       throw new Error(`Failed to add product: ${error.message}`)
@@ -154,7 +189,7 @@ export const productService = {
           category: data.category || '',
           subcategory: data.subcategory || '',
           batchNumber: data.batchNumber || '',
-          expiryDate: data.expiryDate?.toDate() || new Date(),
+          expiryDate: this.safeDate(data.expiryDate),
           stockQuantity: data.stockQuantity || 0,
           images: data.images || [],
           primaryImage: data.primaryImage,
@@ -170,8 +205,12 @@ export const productService = {
           stockStatus: data.stockStatus || 'in-stock',
           estimatedDelivery: data.estimatedDelivery,
           freeShippingThreshold: data.freeShippingThreshold,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
+          compliance: data.compliance,
+          shipping: data.shipping,
+          seo: data.seo,
+          medicalInfo: data.medicalInfo,
+          createdAt: this.safeDate(data.createdAt),
+          updatedAt: this.safeDate(data.updatedAt),
         } as Product
       })
     } catch (error: any) {
@@ -187,8 +226,8 @@ export const productService = {
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        createdAt: this.safeDate(doc.data().createdAt),
+        updatedAt: this.safeDate(doc.data().updatedAt),
       } as Product))
     } catch (error: any) {
       throw new Error(`Failed to fetch products by category: ${error.message}`)
@@ -203,8 +242,8 @@ export const productService = {
       return querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
+        createdAt: this.safeDate(doc.data().createdAt),
+        updatedAt: this.safeDate(doc.data().updatedAt),
       } as Product))
     } catch (error: any) {
       throw new Error(`Failed to fetch low stock products: ${error.message}`)
@@ -246,8 +285,7 @@ export const productService = {
           discount: data.discount || 0,
           category: data.category || '',
           subcategory: data.subcategory || '',
-          batchNumber: data.batchNumber || '',
-          expiryDate: data.expiryDate?.toDate() || new Date(),
+          expiryDate: this.safeDate(data.expiryDate),
           stockQuantity: data.stockQuantity || 0,
           images: data.images || [],
           primaryImage: data.primaryImage,
@@ -263,8 +301,8 @@ export const productService = {
           stockStatus: data.stockStatus || 'in-stock',
           estimatedDelivery: data.estimatedDelivery,
           freeShippingThreshold: data.freeShippingThreshold,
-          createdAt: data.createdAt?.toDate() || new Date(),
-          updatedAt: data.updatedAt?.toDate() || new Date(),
+          createdAt: this.safeDate(data.createdAt),
+          updatedAt: this.safeDate(data.updatedAt),
         } as Product
       })
     } catch (error: any) {

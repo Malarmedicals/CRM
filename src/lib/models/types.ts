@@ -42,8 +42,70 @@ export interface Product {
   averageMonthlySales?: number
   createdAt: Date
   updatedAt: Date
+  sku?: string // Internal Product ID
+
+  // Pricing & Tax
+  mrp?: number // Maximum Retail Price (Original Price)
+  sellingPrice?: number // Final Selling Price
+  discountType?: 'flat' | 'percentage'
+  taxType?: 'inclusive' | 'exclusive'
+
+  // Inventory
+  lowStockThreshold?: number
+
+  // Medical Specifics
+  medicalInfo?: MedicalInfo
+
+  // Compliance & Regulatory
+  compliance?: ProductCompliance
+
+  // Shipping & Logistics
+  shipping?: ProductShipping
+
+  // SEO & Visibility
+  seo?: ProductSEO
+
+  // Audit & Safety
+  createdBy?: string
+  updatedBy?: string
+  isRecalled?: boolean
+
+  // Existing fields
   isSensitive?: boolean // Requires valid prescription
   healthConcern?: string // Specific health concern filter
+}
+
+export interface ProductCompliance {
+  scheduleType?: 'otc' | 'h' | 'h1' | 'x'
+  ageRestriction?: boolean
+  pharmacistApprovalRequired?: boolean
+  prescriptionRequired?: boolean
+}
+
+export interface ProductShipping {
+  coldChainRequired?: boolean
+  extraHandlingFee?: number
+  shippingZones?: string[]
+}
+
+export interface ProductSEO {
+  slug?: string
+  metaTitle?: string
+  metaDescription?: string
+  metaKeywords?: string
+}
+
+export interface MedicalInfo {
+  composition?: string
+  strength?: string
+  dosageForm?: string // Tablet, Syrup, Injection, etc.
+  packSize?: string // e.g. 10 tablets
+  usageInstructions?: string
+  sideEffects?: string
+  storageInstructions?: string
+  drugInteractions?: string
+  indications?: string
+  contraindications?: string
 }
 
 export interface ProductDetail {

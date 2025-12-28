@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { notificationService } from './notification-service';
 import { Notification } from '@/lib/models/notification';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export function useNotifications() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -8,13 +10,30 @@ export function useNotifications() {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        const unsubscribe = notificationService.subscribe((data) => {
-            setNotifications(data);
-            setUnreadCount(data.filter(n => !n.isRead).length);
-            setLoading(false);
+        let unsubscribeService: (() => void) | undefined;
+
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                unsubscribeService = notificationService.subscribe((data) => {
+                    setNotifications(data);
+                    setUnreadCount(data.filter(n => !n.isRead).length);
+                    setLoading(false);
+                }, user.uid);
+            } else {
+                setNotifications([]);
+                setUnreadCount(0);
+                setLoading(false);
+                if (unsubscribeService) {
+                    unsubscribeService();
+                    unsubscribeService = undefined;
+                }
+            }
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeService) unsubscribeService();
+        };
     }, []);
 
     const markAsRead = async (id: string) => {
