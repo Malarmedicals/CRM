@@ -174,6 +174,7 @@ export interface Order {
   customerName?: string
   customerPhone?: string
   products: OrderItem[]
+  items?: OrderItem[] // Alternative field name for backward compatibility
   totalAmount: number
   status: 'pending' | 'shipped' | 'delivered' | 'cancelled' // Payment Status
   isNew?: boolean // Trigger for CRM notification

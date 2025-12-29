@@ -129,7 +129,8 @@ export default function DashboardPage() {
           // Process Revenue by Category
           const categoryMap = new Map<string, number>()
           orders.forEach(order => {
-            order.products.forEach(item => {
+            const orderItems = order.items || order.products || []
+            orderItems.forEach((item: any) => {
               // Reliant on item having category snapshot. 
               // If missing, use 'General' or similar. 
               // We avoid fetching 1000s of products just for this fallback.
@@ -153,7 +154,8 @@ export default function DashboardPage() {
           // Process Top Selling Products
           const productSalesMap = new Map<string, { name: string, sales: number }>()
           orders.forEach(order => {
-            order.products.forEach(item => {
+            const orderItems = order.items || order.products || []
+            orderItems.forEach((item: any) => {
               const productId = item.productId || 'unknown'
               const productName = item.productName || item.name || 'Unknown Product'
 
