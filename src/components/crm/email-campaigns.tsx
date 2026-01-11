@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { emailService, EmailTemplate } from '@/features/crm/email-service'
 import { notificationService } from '@/features/crm/notification-service'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { AlertCircle, Mail, Send } from 'lucide-react'
 
 export default function EmailCampaigns() {
+  const searchParams = useSearchParams()
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [showForm, setShowForm] = useState(false)
   const [selectedSegment, setSelectedSegment] = useState<'all' | 'regular' | 'prescription' | 'highValue'>('all')
@@ -17,9 +19,28 @@ export default function EmailCampaigns() {
   const [sendingTemplateId, setSendingTemplateId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  // Individual segment selections for each template card
+  const [segmentSelections, setSegmentSelections] = useState<Record<string, 'all' | 'regular' | 'prescription' | 'highValue'>>({
+    '1': 'prescription', // Weekly Promotions -> Prescription Customers by default
+    '2': 'prescription', // Prescription Reminder -> Prescription Customers by default
+    '3': 'all', // Welcome Email -> All Customers by default
+  })
+
   useEffect(() => {
     loadTemplates()
-  }, [])
+
+    // Check if segment parameter is in URL
+    const segmentParam = searchParams.get('segment') as 'all' | 'regular' | 'prescription' | 'highValue' | null
+    if (segmentParam) {
+      // Update all segment selections to the specified segment
+      setSegmentSelections({
+        '1': segmentParam,
+        '2': segmentParam,
+        '3': segmentParam,
+      })
+      setSelectedSegment(segmentParam)
+    }
+  }, [searchParams])
 
   const loadTemplates = async () => {
     try {
@@ -131,6 +152,19 @@ export default function EmailCampaigns() {
         </div>
       )}
 
+      {searchParams.get('segment') && (
+        <div className="flex items-center gap-2 p-4 bg-primary/10 border border-primary rounded-lg">
+          <Mail className="h-4 w-4 text-primary" />
+          <p className="text-sm text-primary">
+            <strong>Targeting: </strong>
+            {searchParams.get('segment') === 'regular' && 'Regular Customers'}
+            {searchParams.get('segment') === 'prescription' && 'Prescription Customers'}
+            {searchParams.get('segment') === 'highValue' && 'High-Value Customers'}
+            {searchParams.get('segment') === 'all' && 'All Customers'}
+          </p>
+        </div>
+      )}
+
       {showForm && (
         <Card className="p-6">
           <h2 className="text-xl font-semibold mb-4">Send Campaign</h2>
@@ -185,6 +219,7 @@ export default function EmailCampaigns() {
         {sampleTemplates.map((template) => {
           const isSending = sendingTemplateId === template.id
           const isDisabled = loading && !isSending
+          const currentSegment = segmentSelections[template.id] || 'all'
 
           return (
             <Card key={template.id} className="p-4 hover:shadow-lg transition-shadow">
@@ -200,8 +235,11 @@ export default function EmailCampaigns() {
                   <div>
                     <label className="block text-xs font-medium mb-1 text-muted-foreground">Target Segment</label>
                     <select
-                      value={selectedSegment}
-                      onChange={(e) => setSelectedSegment(e.target.value as any)}
+                      value={currentSegment}
+                      onChange={(e) => setSegmentSelections(prev => ({
+                        ...prev,
+                        [template.id]: e.target.value as any
+                      }))}
                       className="w-full px-2 py-1 text-xs border border-input rounded bg-background"
                       disabled={loading}
                     >
@@ -216,7 +254,7 @@ export default function EmailCampaigns() {
                     variant="outline"
                     size="sm"
                     className="w-full gap-2"
-                    onClick={() => handleSendCampaign(template.id, selectedSegment)}
+                    onClick={() => handleSendCampaign(template.id, currentSegment)}
                     disabled={isDisabled}
                   >
                     <Send className="h-3 w-3" />

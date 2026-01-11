@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { notificationService } from '@/features/crm/notification-service'
 import { crmToolsService } from '@/features/crm/crm-service'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, TrendingUp, AlertCircle } from 'lucide-react'
+import { Users, TrendingUp, AlertCircle, Mail } from 'lucide-react'
 
 interface CustomerSegments {
   regular: string[]
@@ -14,6 +15,7 @@ interface CustomerSegments {
 }
 
 export default function CustomerSegmentation() {
+  const router = useRouter()
   const [segments, setSegments] = useState<CustomerSegments>({
     regular: [],
     prescription: [],
@@ -38,6 +40,11 @@ export default function CustomerSegmentation() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleTargetSegment = (segment: 'regular' | 'prescription' | 'highValue') => {
+    // Navigate to email campaigns page with segment parameter
+    router.push(`/dashboard/crm?tab=email-campaigns&segment=${segment}`)
   }
 
   const handleRetentionCampaign = async () => {
@@ -70,7 +77,14 @@ export default function CustomerSegmentation() {
           </div>
           <p className="text-3xl font-bold">{segments.regular.length}</p>
           <p className="text-sm text-muted-foreground mt-2">Active customers with purchases</p>
-          <Button variant="outline" size="sm" className="w-full mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-4 gap-2"
+            onClick={() => handleTargetSegment('regular')}
+            disabled={segments.regular.length === 0}
+          >
+            <Mail className="h-4 w-4" />
             Target This Segment
           </Button>
         </Card>
@@ -82,7 +96,14 @@ export default function CustomerSegmentation() {
           </div>
           <p className="text-3xl font-bold">{segments.prescription.length}</p>
           <p className="text-sm text-muted-foreground mt-2">Customers with prescription orders</p>
-          <Button variant="outline" size="sm" className="w-full mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-4 gap-2"
+            onClick={() => handleTargetSegment('prescription')}
+            disabled={segments.prescription.length === 0}
+          >
+            <Mail className="h-4 w-4" />
             Send Reminder
           </Button>
         </Card>
@@ -94,7 +115,14 @@ export default function CustomerSegmentation() {
           </div>
           <p className="text-3xl font-bold">{segments.highValue.length}</p>
           <p className="text-sm text-muted-foreground mt-2">VIP customers ($1000+ spent)</p>
-          <Button variant="outline" size="sm" className="w-full mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-4 gap-2"
+            onClick={() => handleTargetSegment('highValue')}
+            disabled={segments.highValue.length === 0}
+          >
+            <Mail className="h-4 w-4" />
             VIP Program
           </Button>
         </Card>
@@ -119,37 +147,7 @@ export default function CustomerSegmentation() {
       </Card>
 
       {/* Customer Health Metrics */}
-      <Card className="p-6">
-        <h3 className="font-semibold text-lg mb-4">Customer Health Summary</h3>
-        <div className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Total Active Customers</span>
-            <span className="font-semibold">
-              {segments.regular.length + segments.prescription.length + segments.highValue.length}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">At-Risk Customers</span>
-            <span className="font-semibold text-orange-600">{churnRisk.length}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Customer Retention Rate</span>
-            <span className="font-semibold text-green-600">
-              {segments.regular.length + segments.prescription.length + segments.highValue.length > 0
-                ? (
-                  ((segments.regular.length + segments.prescription.length + segments.highValue.length) /
-                    (segments.regular.length +
-                      segments.prescription.length +
-                      segments.highValue.length +
-                      churnRisk.length)) *
-                  100
-                ).toFixed(1)
-                : 0}
-              %
-            </span>
-          </div>
-        </div>
-      </Card>
+
     </div>
   )
 }
