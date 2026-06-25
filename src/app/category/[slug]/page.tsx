@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { categoryService } from '@/features/categories/category-service'
-import { productService } from '@/features/products/product-service'
-import { Product } from '@/lib/models/types'
+import { categoryService } from '@/features/categories'
+import { productService } from '@/features/products'
+import type { Product } from '@/features/products/domain/types'
 import { StoreProductCard } from '@/components/store/store-product-card'
 import { Navigation } from '@/components/layout/navigation'
 

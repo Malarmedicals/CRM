@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { authService } from '@/features/auth/auth-service'
-import { auth } from '@/lib/firebase'
+import { authService } from '@/features/auth'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet'
 import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, MoreVertical, ChevronDown, Warehouse, FileText } from 'lucide-react'
@@ -23,13 +23,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
-      if (!currentUser) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
         // Optional: redirect to login if not authenticated
         // router.push('/')
       }
     })
-    return () => unsubscribe()
+    return () => subscription.unsubscribe()
   }, [])
 
   const handleLogout = async () => {

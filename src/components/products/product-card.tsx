@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { useState } from 'react'
-import { Product } from '@/lib/models/types'
+import type { Product } from '@/features/products/domain/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Package, ChevronLeft, ChevronRight } from 'lucide-react'

@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LoginForm } from '@/components/auth/login-form'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase/client'
 
 export default function Home() {
   const router = useRouter()
@@ -12,15 +11,25 @@ export default function Home() {
 
   useEffect(() => {
     // Check if user is already logged in
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
         router.push('/dashboard')
       } else {
         setLoading(false)
       }
     })
 
-    return () => unsubscribe()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        router.push('/dashboard')
+      } else {
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [router])
 
   if (loading) {

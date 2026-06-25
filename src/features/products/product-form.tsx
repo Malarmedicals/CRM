@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Product, ProductDetail, ColorVariant, Material, MedicalInfo } from '@/lib/models/types'
-import { productService } from '@/features/products/product-service'
+import type { Product, ProductDetail, ColorVariant, Material, MedicalInfo } from '@/features/products/domain/types'
+import { productService } from '@/features/products'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -11,10 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AlertCircle, Plus, Trash2, GripVertical, Check, Info } from 'lucide-react'
-import { storage, db } from '@/lib/firebase'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
-import { categoryService } from '@/features/categories/category-service'
+import { supabase } from '@/lib/supabase/client'
+import { categoryService } from '@/features/categories'
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -168,10 +166,10 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
 
     const loadHealthConcerns = async () => {
       try {
-        const q = query(collection(db, 'healthConcerns'))
-        const querySnapshot = await getDocs(q)
+        const { data, error } = await supabase.from('health_concerns').select('name')
+        if (error) throw error
         const concerns: string[] = []
-        querySnapshot.forEach((doc) => { if (doc.data().name) concerns.push(doc.data().name) })
+        data.forEach((doc: any) => { if (doc.name) concerns.push(doc.name) })
         setHealthConcerns(concerns.sort())
       } catch (error) {
         console.error('Error loading health concerns:', error)
@@ -283,16 +281,18 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       if (imageFile) {
         const webpFile = await convertToWebP(imageFile)
         const refName = `products/${Date.now()}_primary_${webpFile.name}`
-        const snap = await uploadBytes(ref(storage, refName), webpFile)
-        imageUrl = await getDownloadURL(snap.ref)
+        const { data, error } = await supabase.storage.from('products').upload(refName, webpFile)
+        if (error) throw error
+        imageUrl = supabase.storage.from('products').getPublicUrl(data.path).data.publicUrl
       }
 
       const newAdditionalImageUrls: string[] = []
       for (const file of additionalImageFiles) {
         const webpFile = await convertToWebP(file)
         const refName = `products/${Date.now()}_add_${webpFile.name}`
-        const snap = await uploadBytes(ref(storage, refName), webpFile)
-        newAdditionalImageUrls.push(await getDownloadURL(snap.ref))
+        const { data, error } = await supabase.storage.from('products').upload(refName, webpFile)
+        if (error) throw error
+        newAdditionalImageUrls.push(supabase.storage.from('products').getPublicUrl(data.path).data.publicUrl)
       }
 
       const existingUrls = additionalImagePreviews.filter(url => url.startsWith('http'))

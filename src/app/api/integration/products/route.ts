@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { productService } from '@/features/products/product-service'
+import { productService } from '@/features/products'
 
 // Verify API key middleware
 function verifyApiKey(request: NextRequest): boolean {

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { orderService } from '@/features/orders/order-service'
-import { Order } from '@/lib/models/types'
+import { orderService } from '@/features/orders'
+import type { Order } from '@/features/orders/domain/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -58,7 +58,7 @@ export default function OrdersPage() {
 
   const loadOrders = async () => {
     try {
-      const data = await orderService.getAllOrders()
+      const data = await orderService.getOrders()
       setOrders(data)
     } catch (error) {
       console.error('Failed to load orders:', error)

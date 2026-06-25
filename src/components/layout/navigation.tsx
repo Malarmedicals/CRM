@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { cn } from "@/lib/utils"
 // import { ChevronDown, ChevronRight } from 'lucide-react' // If you want to use Lucide icons instead
 // Note: You provided FontAwesome classes (fa-solid). Ensure FontAwesome is loaded in your project.
-import { categoryService } from '@/features/categories/category-service'
+import { categoryService } from '@/features/categories'
 
 interface Subcategory {
     name: string;

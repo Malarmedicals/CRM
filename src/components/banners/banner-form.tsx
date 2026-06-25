@@ -2,9 +2,10 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
-import { Banner, Product } from '@/lib/models/types'
-import { bannerService } from '@/features/crm/banner-service'
-import { productService } from '@/features/products/product-service'
+import type { Banner } from '@/features/crm/domain/types'
+import type { Product } from '@/features/products/domain/types'
+import { bannerService } from '@/features/crm'
+import { productService } from '@/features/products'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'

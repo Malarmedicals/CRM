@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { orderService } from '@/features/orders/order-service'
-import { productService } from '@/features/products/product-service'
-import { Timestamp } from 'firebase/firestore'
+import { orderService } from '@/features/orders'
+import { productService } from '@/features/products'
+
 
 // Verify API key middleware
 function verifyApiKey(request: NextRequest): boolean {

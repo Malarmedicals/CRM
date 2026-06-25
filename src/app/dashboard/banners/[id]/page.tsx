@@ -3,8 +3,8 @@
 import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import BannerForm from '@/components/banners/banner-form'
-import { bannerService } from '@/features/crm/banner-service'
-import { Banner } from '@/lib/models/types'
+import { bannerService } from '@/features/crm'
+import type { Banner } from '@/features/crm/domain/types'
 
 export default function EditBannerPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter()

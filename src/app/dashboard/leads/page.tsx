@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { leadService } from '@/features/crm/lead-service'
-import { Lead } from '@/lib/models/types'
+import { leadService } from '@/features/crm'
+import type { Lead } from '@/features/crm/domain/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

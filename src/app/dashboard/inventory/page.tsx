@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { inventoryService } from '@/features/products/inventory-service'
-import { Product, StockMovement } from '@/lib/models/types'
+import { inventoryService } from '@/features/products'
+import type { Product, StockMovement } from '@/features/products/domain/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

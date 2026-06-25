@@ -7,40 +7,28 @@
  * Usage: Import and call fixUserRoles() from your admin panel or run manually
  */
 
-import { collection, getDocs, updateDoc, doc, Timestamp } from 'firebase/firestore'
-import { db } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase/client'
 
 export async function fixUserRoles() {
     try {
         console.log('Starting user role migration...')
 
-        const usersSnapshot = await getDocs(collection(db, 'users'))
+        const { data: users, error } = await supabase.from('users').select('*')
+        if (error) throw error
+        
         let updatedCount = 0
-        let totalUsers = 0
+        let totalUsers = users.length
 
-        const updates: Promise<void>[] = []
-
-        usersSnapshot.docs.forEach((userDoc) => {
-            totalUsers++
-            const userData = userDoc.data()
-
+        for (const user of users) {
             // Check if role is missing or invalid
-            if (!userData.role || typeof userData.role !== 'string') {
-                console.log(`Fixing user ${userDoc.id}: ${userData.email || 'no email'}`)
+            if (!user.role || typeof user.role !== 'string') {
+                console.log(`Fixing user ${user.id}: ${user.email || 'no email'}`)
 
                 // Assign default role 'customer'
-                const updatePromise = updateDoc(doc(db, 'users', userDoc.id), {
-                    role: 'customer',
-                    updatedAt: Timestamp.now(),
-                })
-
-                updates.push(updatePromise)
+                await supabase.from('users').update({ role: 'customer' }).eq('id', user.id)
                 updatedCount++
             }
-        })
-
-        // Execute all updates
-        await Promise.all(updates)
+        }
 
         console.log(`Migration complete!`)
         console.log(`Total users: ${totalUsers}`)

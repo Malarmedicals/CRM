@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { whatsappService, WhatsAppTemplate } from '@/features/crm/whatsapp-service'
-import { notificationService } from '@/features/crm/notification-service'
+import { whatsappService, WhatsAppTemplate } from '@/features/crm'
+import { notificationService } from '@/features/crm'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

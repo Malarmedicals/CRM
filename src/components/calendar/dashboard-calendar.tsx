@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, momentLocalizer, Views, View } from 'react-big-calendar'
 import moment from 'moment'
 import { CalendarEvent, EventType } from '@/lib/models/calendar'
-import { calendarService } from '@/features/calendar/calendar-service'
+import { calendarService } from '@/features/calendar'
 import { Button } from '@/components/ui/button'
 import { Plus, Filter, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -80,7 +80,7 @@ export default function DashboardCalendar() {
         } catch (error: any) {
             console.error(error)
             if (error.message.includes('Missing or insufficient permissions')) {
-                setError('Permission denied. Please ensure Firestore rules are deployed: firebase deploy --only firestore:rules')
+                setError('Permission denied. Please ensure Supabase RLS rules are deployed')
             } else {
                 toast.error('Failed to load events')
             }

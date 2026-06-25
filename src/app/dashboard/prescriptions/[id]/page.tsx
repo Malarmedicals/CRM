@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { prescriptionService } from '@/features/prescriptions/prescription-service'
-import { Prescription, PrescriptionItem, Product } from '@/lib/models/types'
+import { prescriptionService } from '@/features/prescriptions'
+import type { Prescription, PrescriptionItem } from '@/features/prescriptions/domain/types'
+import type { Product } from '@/features/products/domain/types'
 import { MedicineSelector } from '@/features/prescriptions/components/medicine-selector'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -149,18 +150,12 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
             // For now, hardcoding admin/pharmacist ID until auth context is fully ready
             const pharmacistId = 'admin-user-id'
 
-            await prescriptionService.updatePrescription(prescription.id, {
-                doctorName,
-                patientName,
-                // Assuming current date for prescription date if not set, or we could add a date picker
-            })
+            // Assuming current date for prescription date if not set, or we could add a date picker
 
-            await prescriptionService.approvePrescription(
+            await prescriptionService.updatePrescriptionStatus(
                 prescription.id,
-                medicines,
-                pharmacistId,
-                notes,
-                prescription.userId // Pass userId for notification
+                'approved',
+                notes
             )
 
             // Order creation removed as per requirement - User will presumably confirm from their end
@@ -184,10 +179,10 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
         setProcessing(true)
         try {
             const pharmacistId = 'admin-user-id'
-            await prescriptionService.rejectPrescription(
+            await prescriptionService.updatePrescriptionStatus(
                 prescription!.id,
-                rejectionReason,
-                pharmacistId
+                'rejected',
+                rejectionReason
             )
             toast.success('Prescription rejected')
             router.push('/dashboard/prescriptions')

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { notificationService } from '@/features/crm/notification-service'
-import { crmToolsService } from '@/features/crm/crm-service'
+import { notificationService } from '@/features/crm'
+import { crmToolsService } from '@/features/crm'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, TrendingUp, AlertCircle, Mail } from 'lucide-react'

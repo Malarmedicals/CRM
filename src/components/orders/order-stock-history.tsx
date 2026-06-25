@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Package, TrendingDown, Calendar, User, FileText } from 'lucide-react'
-import { inventoryService } from '@/features/products/inventory-service'
-import { StockMovement } from '@/lib/models/types'
+import { inventoryService } from '@/features/products'
+import type { StockMovement } from '@/features/products/domain/types'
 
 interface OrderStockHistoryProps {
     orderId: string

@@ -1,11 +1,11 @@
 import Image from 'next/image'
 import { useState } from 'react'
-import { Product } from '@/lib/models/types'
+import type { Product } from '@/features/products/domain/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ShoppingCart, Heart, Package, ChevronLeft, ChevronRight } from 'lucide-react'
 
-import { ecommerceService } from '@/features/ecommerce/ecommerce-service'
+import { ecommerceService } from '@/features/ecommerce'
 
 interface StoreProductCardProps {
     product: Product

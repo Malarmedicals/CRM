@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { productService } from '@/features/products/product-service'
-import { Product } from '@/lib/models/types'
+import { productService } from '@/features/products'
+import type { Product } from '@/features/products/domain/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

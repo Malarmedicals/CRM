@@ -1,35 +1,23 @@
-/**
- * Create Admin User Script
- * 
- * This script creates an admin user in Firebase Authentication
- * and adds the corresponding user document in Firestore.
- */
-
-import * as admin from 'firebase-admin'
-import { getAuth } from 'firebase-admin/auth'
-import { getFirestore, Timestamp } from 'firebase-admin/firestore'
+import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
+import { join } from 'path'
 
 // Load environment variables
-dotenv.config({ path: '.env.local' })
+dotenv.config({ path: join(process.cwd(), '.env.local') })
 
-// Initialize Firebase Admin
-if (!admin.apps.length) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
-    })
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-const auth = getAuth()
-const db = getFirestore()
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    }
+})
 
 // Admin user details
 const ADMIN_EMAIL = 'admin@malarmedicals.com'
-const ADMIN_PASSWORD = 'Admin@123456'  // Change this to a secure password
+const ADMIN_PASSWORD = 'Admin@123456'
 const ADMIN_PHONE = '+919876543210'
 const ADMIN_NAME = 'Admin User'
 
@@ -37,44 +25,50 @@ async function createAdminUser() {
     try {
         console.log('🔐 Creating admin user...')
 
-        // Check if user already exists
-        let userRecord
-        try {
-            userRecord = await auth.getUserByEmail(ADMIN_EMAIL)
-            console.log('✅ Admin user already exists in Authentication')
-            console.log(`   UID: ${userRecord.uid}`)
-        } catch (error: any) {
-            if (error.code === 'auth/user-not-found') {
-                // Create new user
-                userRecord = await auth.createUser({
-                    email: ADMIN_EMAIL,
-                    password: ADMIN_PASSWORD,
-                    phoneNumber: ADMIN_PHONE,
-                    displayName: ADMIN_NAME,
-                    emailVerified: true,
-                })
-                console.log('✅ Admin user created in Authentication')
-                console.log(`   UID: ${userRecord.uid}`)
-            } else {
-                throw error
-            }
-        }
+        let userId: string | null = null
 
-        // Create/Update Firestore user document
-        const userDoc = {
-            uid: userRecord.uid,
+        // Try creating the user
+        const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email: ADMIN_EMAIL,
-            phoneNumber: ADMIN_PHONE,
-            displayName: ADMIN_NAME,
-            role: 'admin',
-            isActive: true,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
+            password: ADMIN_PASSWORD,
+            email_confirm: true,
+            user_metadata: {
+                display_name: ADMIN_NAME,
+                phone_number: ADMIN_PHONE
+            }
+        })
+
+        if (createError) {
+            if (createError.message.includes('already exists')) {
+                console.log('✅ Admin user already exists in Authentication')
+                const { data } = await supabaseAdmin.auth.admin.listUsers()
+                const existing = data.users.find((u: any) => u.email === ADMIN_EMAIL)
+                if (existing) {
+                    userId = existing.id
+                }
+            } else {
+                throw createError
+            }
+        } else {
+            console.log('✅ Admin user created in Authentication')
+            userId = authData.user.id
         }
 
-        await db.collection('users').doc(userRecord.uid).set(userDoc, { merge: true })
-        console.log('✅ Admin user document created/updated in Firestore')
+        if (!userId) throw new Error('Could not resolve Admin User ID')
 
+        // Create/Update Supabase user document
+        const { error: dbError } = await supabaseAdmin.from('users').upsert({
+            uid: userId,
+            email: ADMIN_EMAIL,
+            phone_number: ADMIN_PHONE,
+            display_name: ADMIN_NAME,
+            role: 'admin',
+            is_active: true,
+        }, { onConflict: 'uid' })
+
+        if (dbError) throw dbError
+
+        console.log('✅ Admin user document created/updated in Database')
         console.log('\n📧 Admin Login Credentials:')
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
         console.log(`Email:    ${ADMIN_EMAIL}`)
@@ -85,11 +79,10 @@ async function createAdminUser() {
 
     } catch (error) {
         console.error('❌ Error creating admin user:', error)
-        throw error
+        process.exit(1)
     }
 }
 
-// Run the script
 createAdminUser()
     .then(() => {
         console.log('✅ Script completed successfully')

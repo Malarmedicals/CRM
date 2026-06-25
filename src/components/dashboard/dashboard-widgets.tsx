@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { prescriptionService } from "@/features/prescriptions/prescription-service"
-import { Prescription } from "@/lib/models/types"
+import { prescriptionService } from '@/features/prescriptions'
+import type { Prescription } from '@/features/prescriptions/domain/types'
 import { formatDistanceToNow } from "date-fns"
 
 interface WidgetProps {
@@ -79,7 +79,7 @@ export function PendingApprovalsWidget({ className }: WidgetProps) {
     const loadData = async () => {
         try {
             // Fetch only pending prescriptions
-            const data = await prescriptionService.getAllPrescriptions('pending')
+            const data = await prescriptionService.getPrescriptions('pending')
             setApprovals(data.slice(0, 5)) // Show max 5
         } catch (error) {
             console.error("Failed to load pending approvals", error)

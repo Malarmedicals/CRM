@@ -1,89 +1,43 @@
 import { useEffect } from 'react';
-import { collection, onSnapshot, query, where, orderBy, limit, Timestamp, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Notification } from '@/lib/models/notification';
 
 export function useOrderListener() {
     const { toast } = useToast();
 
     useEffect(() => {
-        let unsubscribeSnapshot: (() => void) | undefined;
+        let channel: ReturnType<typeof supabase.channel> | undefined;
 
-        // Listen for auth state changes
-        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // Timestamp to ignore old orders loaded on init
-                const startTime = new Date();
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                const startTime = new Date().toISOString();
 
-                const q = query(
-                    collection(db, 'orders'),
-                    orderBy('createdAt', 'desc'),
-                    limit(5)
-                );
+                channel = supabase.channel('public:orders')
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
+                        const newDoc = payload.new as any;
+                        if (newDoc.created_at && newDoc.created_at > startTime && newDoc.status === 'pending') {
+                            
+                            toast({
+                                title: "New Order",
+                                description: `New order from ${newDoc.customer_name || 'Customer'} - ₹${newDoc.total_amount}`,
+                                variant: "default",
+                            });
 
-                unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-                    snapshot.docChanges().forEach(async (change) => {
-                        if (change.type === 'added') {
-                            const orderData = change.doc.data();
-                            const orderId = change.doc.id;
-                            const createdAt = (orderData.createdAt as Timestamp)?.toDate();
-
-                            if (createdAt && createdAt > startTime) {
-
-                                // Check for existing notification to avoid duplicates
-                                const notifQuery = query(
-                                    collection(db, 'notifications'),
-                                    where('metadata.orderId', '==', orderId)
-                                );
-                                const notifSnap = await getDocs(notifQuery);
-
-                                if (notifSnap.empty) {
-                                    // Create Persistent Notification
-                                    const newNotification = {
-                                        title: 'New Order Received',
-                                        message: `Order #${orderId.slice(0, 6).toUpperCase()} placed by ${orderData.customerName || 'Customer'}. Amount: ₹${orderData.totalAmount}`,
-                                        type: 'order',
-                                        isRead: false,
-                                        createdAt: serverTimestamp(), // Use server timestamp
-                                        link: `/dashboard/orders?id=${orderId}`,
-                                        metadata: {
-                                            orderId,
-                                            amount: orderData.totalAmount
-                                        }
-                                    };
-
-                                    try {
-                                        await addDoc(collection(db, 'notifications'), newNotification);
-
-                                        // Optional: Global Toast via this listener
-                                        toast({
-                                            title: "New Order",
-                                            description: `Order #${orderId.slice(0, 6)} has been received.`,
-                                            variant: "default",
-                                        });
-                                    } catch (err) {
-                                        console.error("Failed to auto-create notification", err);
-                                    }
-                                }
-                            }
+                            // Add notification 
+                            await supabase.from('notifications').insert({
+                                title: 'New Order Received',
+                                message: `New order placed by ${newDoc.customer_name || 'Customer'} for ₹${newDoc.total_amount}`,
+                                type: 'order',
+                                is_read: false,
+                            });
                         }
-                    });
-                }, (error) => {
-                    console.error("Order listener error:", error);
-                });
-            } else {
-                if (unsubscribeSnapshot) {
-                    unsubscribeSnapshot();
-                    unsubscribeSnapshot = undefined;
-                }
+                    })
+                    .subscribe();
             }
         });
 
         return () => {
-            unsubscribeAuth();
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
+            if (channel) supabase.removeChannel(channel);
         };
     }, [toast]);
 }

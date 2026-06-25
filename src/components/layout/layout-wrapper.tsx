@@ -3,8 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+import { supabase } from '@/lib/supabase/client'
 import DashboardLayout from '@/components/layout/dashboard-layout'
 import { useOrderListener } from '@/features/orders/use-order-listener'
 import { usePrescriptionListener } from '@/features/prescriptions/use-prescription-listener'
@@ -26,15 +25,28 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   useEffect(() => {
     if (isDashboardRoute) {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
           setIsAuthenticated(true)
           setLoading(false)
         } else {
           router.push('/')
         }
       })
-      return () => unsubscribe()
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          setIsAuthenticated(true)
+          setLoading(false)
+        } else {
+          setIsAuthenticated(false)
+          router.push('/')
+        }
+      })
+
+      return () => subscription.unsubscribe()
     } else {
       setLoading(false)
     }
@@ -54,4 +66,3 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
 
   return <>{children}</>
 }
-

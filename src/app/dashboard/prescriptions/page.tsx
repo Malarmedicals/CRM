@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { prescriptionService } from '@/features/prescriptions/prescription-service'
-import { Prescription } from '@/lib/models/types'
+import { prescriptionService } from '@/features/prescriptions'
+import type { Prescription } from '@/features/prescriptions/domain/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -48,7 +48,7 @@ export default function PrescriptionsPage() {
     const loadPrescriptions = async () => {
         setLoading(true)
         try {
-            const data = await prescriptionService.getAllPrescriptions()
+            const data = await prescriptionService.getPrescriptions()
             setPrescriptions(data)
         } catch (error) {
             console.error('Failed to load prescriptions:', error)

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { orderService } from '@/features/orders/order-service'
-import { productService } from '@/features/products/product-service'
-import { leadService } from '@/features/crm/lead-service'
+import { orderService } from '@/features/orders'
+import { productService } from '@/features/products'
+import { leadService } from '@/features/crm'
 
 // Verify webhook signature
 function verifyWebhook(request: NextRequest): boolean {

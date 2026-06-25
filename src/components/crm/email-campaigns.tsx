@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { emailService, EmailTemplate } from '@/features/crm/email-service'
-import { notificationService } from '@/features/crm/notification-service'
+import { emailService, EmailTemplate } from '@/features/crm'
+import { notificationService } from '@/features/crm'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
