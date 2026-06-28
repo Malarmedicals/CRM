@@ -2,7 +2,7 @@
 import { supabase } from '@/lib/supabase/client'
 import type { User } from '../domain/types'
 
-const USERS_TABLE = 'users'
+const USERS_TABLE = 'crm_users'
 const ORDERS_TABLE = 'orders'
 
 function mapDbRowToUser(doc: any): User {

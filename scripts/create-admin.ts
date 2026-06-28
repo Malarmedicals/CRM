@@ -39,12 +39,15 @@ async function createAdminUser() {
         })
 
         if (createError) {
-            if (createError.message.includes('already exists')) {
+            if (createError.message.includes('already exists') || createError.message.includes('already been registered')) {
                 console.log('✅ Admin user already exists in Authentication')
                 const { data } = await supabaseAdmin.auth.admin.listUsers()
                 const existing = data.users.find((u: any) => u.email === ADMIN_EMAIL)
                 if (existing) {
                     userId = existing.id
+                    // Ensure the existing user is confirmed
+                    await supabaseAdmin.auth.admin.updateUserById(userId, { email_confirm: true })
+                    console.log('✅ Existing user email confirmed manually')
                 }
             } else {
                 throw createError
@@ -57,7 +60,7 @@ async function createAdminUser() {
         if (!userId) throw new Error('Could not resolve Admin User ID')
 
         // Create/Update Supabase user document
-        const { error: dbError } = await supabaseAdmin.from('users').upsert({
+        const { error: dbError } = await supabaseAdmin.from('crm_users').upsert({
             uid: userId,
             email: ADMIN_EMAIL,
             phone_number: ADMIN_PHONE,

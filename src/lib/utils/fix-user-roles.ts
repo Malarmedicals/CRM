@@ -13,7 +13,7 @@ export async function fixUserRoles() {
     try {
         console.log('Starting user role migration...')
 
-        const { data: users, error } = await supabase.from('users').select('*')
+        const { data: users, error } = await supabase.from('crm_users').select('*')
         if (error) throw error
         
         let updatedCount = 0
@@ -25,7 +25,7 @@ export async function fixUserRoles() {
                 console.log(`Fixing user ${user.id}: ${user.email || 'no email'}`)
 
                 // Assign default role 'customer'
-                await supabase.from('users').update({ role: 'customer' }).eq('id', user.id)
+                await supabase.from('crm_users').update({ role: 'customer' }).eq('id', user.id)
                 updatedCount++
             }
         }

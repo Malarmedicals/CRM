@@ -2,8 +2,8 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. users
-CREATE TABLE public.users (
+-- 1. crm_users
+CREATE TABLE IF NOT EXISTS public.crm_users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     uid TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE public.users (
 );
 
 -- 2. categories
-CREATE TABLE public.categories (
+CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     subcategories JSONB,
@@ -25,14 +25,14 @@ CREATE TABLE public.categories (
 );
 
 -- 3. health_concerns
-CREATE TABLE public.health_concerns (
+CREATE TABLE IF NOT EXISTS public.health_concerns (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
 -- 4. products
-CREATE TABLE public.products (
+CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     description TEXT,
@@ -58,7 +58,7 @@ CREATE TABLE public.products (
 );
 
 -- 5. orders
-CREATE TABLE public.orders (
+CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id TEXT NOT NULL,
     customer_name TEXT,
@@ -76,7 +76,7 @@ CREATE TABLE public.orders (
 );
 
 -- 6. stock_movements
-CREATE TABLE public.stock_movements (
+CREATE TABLE IF NOT EXISTS public.stock_movements (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     product_id UUID REFERENCES public.products(id),
     product_name TEXT,
@@ -92,7 +92,7 @@ CREATE TABLE public.stock_movements (
 );
 
 -- 7. prescriptions
-CREATE TABLE public.prescriptions (
+CREATE TABLE IF NOT EXISTS public.prescriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id TEXT,
     patient_name TEXT,
@@ -103,7 +103,7 @@ CREATE TABLE public.prescriptions (
 );
 
 -- 8. notifications
-CREATE TABLE public.notifications (
+CREATE TABLE IF NOT EXISTS public.notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id TEXT,
     title TEXT NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE public.notifications (
 );
 
 -- 9. email_templates
-CREATE TABLE public.email_templates (
+CREATE TABLE IF NOT EXISTS public.email_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT UNIQUE NOT NULL,
     subject TEXT NOT NULL,
@@ -125,9 +125,9 @@ CREATE TABLE public.email_templates (
 );
 
 -- 10. email_queue
-CREATE TABLE public.email_queue (
+CREATE TABLE IF NOT EXISTS public.email_queue (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    to TEXT NOT NULL,
+    "to" TEXT NOT NULL,
     "from" TEXT,
     subject TEXT,
     htmlContent TEXT,
@@ -137,7 +137,7 @@ CREATE TABLE public.email_queue (
 );
 
 -- 11. whatsapp_templates
-CREATE TABLE public.whatsapp_templates (
+CREATE TABLE IF NOT EXISTS public.whatsapp_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT UNIQUE NOT NULL,
     message TEXT,
@@ -147,9 +147,9 @@ CREATE TABLE public.whatsapp_templates (
 );
 
 -- 12. whatsapp_queue
-CREATE TABLE public.whatsapp_queue (
+CREATE TABLE IF NOT EXISTS public.whatsapp_queue (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    to TEXT NOT NULL,
+    "to" TEXT NOT NULL,
     message TEXT,
     status TEXT DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
@@ -157,7 +157,7 @@ CREATE TABLE public.whatsapp_queue (
 );
 
 -- 13. leads
-CREATE TABLE public.leads (
+CREATE TABLE IF NOT EXISTS public.leads (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     email TEXT,
@@ -171,7 +171,7 @@ CREATE TABLE public.leads (
 );
 
 -- 14. crm_actions
-CREATE TABLE public.crm_actions (
+CREATE TABLE IF NOT EXISTS public.crm_actions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT,
     type TEXT,
@@ -187,7 +187,7 @@ CREATE TABLE public.crm_actions (
 );
 
 -- 15. events (calendar)
-CREATE TABLE public.events (
+CREATE TABLE IF NOT EXISTS public.events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title TEXT NOT NULL,
     description TEXT,
@@ -201,7 +201,7 @@ CREATE TABLE public.events (
 );
 
 -- 16. banners
-CREATE TABLE public.banners (
+CREATE TABLE IF NOT EXISTS public.banners (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title TEXT,
     image_url TEXT,
@@ -212,7 +212,7 @@ CREATE TABLE public.banners (
 );
 
 -- Disable RLS strictly for this migration script to allow immediate use
-ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.crm_users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.health_concerns DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;

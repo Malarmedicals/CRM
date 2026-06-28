@@ -29,6 +29,7 @@ export function mapDbRowToProduct(doc: any): Product {
     minStockLevel: doc.min_stock_level,
     createdAt: safeDate(doc.created_at),
     updatedAt: safeDate(doc.updated_at),
+    status: doc.is_active ? 'published' : 'draft',
   } as Product
 }
 
@@ -93,26 +94,66 @@ export const productRepository = {
   },
 
   async insert(productData: any): Promise<string> {
-    const { data, error } = await supabase.from(PRODUCTS_TABLE).insert({
+    const insertPayload: any = {
       name: productData.name,
       description: productData.description,
       price: productData.price || 0,
       mrp: productData.mrp || 0,
       discount: productData.discount || 0,
       category: productData.category,
+      subcategory: productData.subcategory,
       brand: productData.brandName,
       stock_quantity: productData.stockQuantity || 0,
       image_url: productData.primaryImage,
       additional_images: productData.additionalImages || [],
-    }).select().single()
+      batch_number: productData.batchNumber,
+      expiry_date: productData.expiryDate,
+      min_stock_level: productData.minStockLevel || 10,
+      seo: productData.seo,
+      compliance: productData.compliance,
+      shipping: productData.shipping,
+      medical_info: productData.medicalInfo,
+      is_active: productData.status === 'published' || productData.status === undefined,
+    };
+
+    const { data, error } = await supabase.from(PRODUCTS_TABLE).insert(insertPayload).select().single()
     if (error) throw error
     return data.id
   },
 
   async update(id: string, productData: any): Promise<void> {
+    const updatePayload: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (productData.name !== undefined) updatePayload.name = productData.name;
+    if (productData.description !== undefined) updatePayload.description = productData.description;
+    if (productData.price !== undefined) updatePayload.price = productData.price;
+    if (productData.mrp !== undefined) updatePayload.mrp = productData.mrp;
+    if (productData.discount !== undefined) updatePayload.discount = productData.discount;
+    if (productData.category !== undefined) updatePayload.category = productData.category;
+    if (productData.subcategory !== undefined) updatePayload.subcategory = productData.subcategory;
+    if (productData.brandName !== undefined) updatePayload.brand = productData.brandName;
+    if (productData.stockQuantity !== undefined) updatePayload.stock_quantity = productData.stockQuantity;
+    if (productData.primaryImage !== undefined) updatePayload.image_url = productData.primaryImage;
+    if (productData.additionalImages !== undefined) updatePayload.additional_images = productData.additionalImages;
+    if (productData.batchNumber !== undefined) updatePayload.batch_number = productData.batchNumber;
+    if (productData.expiryDate !== undefined) updatePayload.expiry_date = productData.expiryDate;
+    if (productData.minStockLevel !== undefined) updatePayload.min_stock_level = productData.minStockLevel;
+    if (productData.seo !== undefined) updatePayload.seo = productData.seo;
+    if (productData.compliance !== undefined) updatePayload.compliance = productData.compliance;
+    if (productData.shipping !== undefined) updatePayload.shipping = productData.shipping;
+    if (productData.medicalInfo !== undefined) updatePayload.medical_info = productData.medicalInfo;
+    
+    if (productData.status) {
+      updatePayload.is_active = productData.status === 'published';
+    } else if (productData.is_active !== undefined) {
+      updatePayload.is_active = productData.is_active;
+    }
+
     const { error } = await supabase
       .from(PRODUCTS_TABLE)
-      .update({ ...productData, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', id)
     if (error) throw error
   },

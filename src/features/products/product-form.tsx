@@ -130,6 +130,9 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [localProductId, setLocalProductId] = useState<string | undefined>(product?.id)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [showAddCategoryDialog, setShowAddCategoryDialog] = useState(false)
   const [showAddSubCategoryDialog, setShowAddSubCategoryDialog] = useState(false)
   const [activeTab, setActiveTab] = useState('basic')
@@ -249,30 +252,43 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
   }, [])
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const saveProduct = async (status: 'draft' | 'published', isAutoSave = false) => {
+    if (!isAutoSave) {
+      setError('')
+      setLoading(true)
+    } else {
+      setAutoSaveStatus('saving')
+    }
 
     // Validation
     const errors: string[] = []
-    if (!formData.name) errors.push('Product Name is required')
-    if (!formData.category) errors.push('Category is required')
-    if (!formData.mrp) errors.push('MRP is required')
-    if (!formData.sellingPrice) errors.push('Selling Price is required')
-    if (formData.stockQuantity === undefined) errors.push('Stock Quantity is required')
-    if (!formData.batchNumber) errors.push('Batch Number is required')
-    if (!formData.hsnCode) errors.push('HSN Code is required')
+    if (!formData.name) {
+      if (isAutoSave) {
+        setAutoSaveStatus('idle')
+        return // Don't auto-save if no name
+      }
+      errors.push('Product Name is required')
+    }
+    
+    if (status === 'published') {
+      if (!formData.category) errors.push('Category is required')
+      if (!formData.mrp) errors.push('MRP is required')
+      if (!formData.sellingPrice) errors.push('Selling Price is required')
+      if (formData.stockQuantity === undefined) errors.push('Stock Quantity is required')
+      if (!formData.batchNumber) errors.push('Batch Number is required')
+      if (!formData.hsnCode) errors.push('HSN Code is required')
+    }
 
-    if (errors.length > 0) {
-      setError(`Missing required fields: ${errors.join(', ')}`)
+    if (errors.length > 0 && !isAutoSave) {
+      setError(`Missing required fields for publishing: ${errors.join(', ')}`)
       setLoading(false)
-      // Auto-switch to tab with error if possible is tricky with multiple errors, 
-      // but let's try to switch to the first one found logically.
       if (!formData.name || !formData.category) setActiveTab('basic')
       else if (!formData.mrp || !formData.sellingPrice) setActiveTab('pricing')
       else if (formData.stockQuantity === undefined || !formData.batchNumber) setActiveTab('inventory')
       else if (!formData.hsnCode) setActiveTab('compliance')
+      return
+    } else if (errors.length > 0 && isAutoSave) {
+      setAutoSaveStatus('idle')
       return
     }
 
@@ -284,45 +300,79 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
         const { data, error } = await supabase.storage.from('products').upload(refName, webpFile)
         if (error) throw error
         imageUrl = supabase.storage.from('products').getPublicUrl(data.path).data.publicUrl
+        
+        setFormData(prev => ({ ...prev, primaryImage: imageUrl }))
+        setImageFile(null)
       }
 
       const newAdditionalImageUrls: string[] = []
-      for (const file of additionalImageFiles) {
-        const webpFile = await convertToWebP(file)
-        const refName = `products/${Date.now()}_add_${webpFile.name}`
-        const { data, error } = await supabase.storage.from('products').upload(refName, webpFile)
-        if (error) throw error
-        newAdditionalImageUrls.push(supabase.storage.from('products').getPublicUrl(data.path).data.publicUrl)
+      if (additionalImageFiles.length > 0) {
+        for (const file of additionalImageFiles) {
+          const webpFile = await convertToWebP(file)
+          const refName = `products/${Date.now()}_add_${webpFile.name}`
+          const { data, error } = await supabase.storage.from('products').upload(refName, webpFile)
+          if (error) throw error
+          newAdditionalImageUrls.push(supabase.storage.from('products').getPublicUrl(data.path).data.publicUrl)
+        }
       }
 
       const existingUrls = additionalImagePreviews.filter(url => url.startsWith('http'))
       const finalAdditionalImages = [...existingUrls, ...newAdditionalImageUrls]
+      
+      if (newAdditionalImageUrls.length > 0) {
+        setFormData(prev => ({ ...prev, additionalImages: finalAdditionalImages }))
+        setAdditionalImageFiles([])
+        setAdditionalImagePreviews(finalAdditionalImages)
+      }
 
       const finalData: any = {
         ...formData,
         primaryImage: imageUrl,
         additionalImages: finalAdditionalImages,
-        price: formData.mrp, // Legacy compatibility: Original Price
-        discount: formData.sellingPrice, // Legacy compatibility: Selling Price
-        // Ensure dates are Dates
+        price: formData.mrp, 
+        discount: formData.sellingPrice, 
+        status, 
         expiryDate: new Date(formData.expiryDate || Date.now()),
         updatedAt: new Date()
       }
 
-      if (product?.id) {
-        await productService.updateProduct(product.id, finalData)
+      if (localProductId) {
+        await productService.updateProduct(localProductId, finalData)
       } else {
         finalData.createdAt = new Date()
-        await productService.addProduct(finalData)
+        const newId = await productService.addProduct(finalData)
+        setLocalProductId(newId)
       }
-      onSuccess()
+      
+      if (!isAutoSave) {
+        onSuccess()
+      } else {
+        setAutoSaveStatus('saved')
+        setLastSaved(new Date())
+      }
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Failed')
+      if (!isAutoSave) {
+        setError(err.message || 'Failed')
+      } else {
+        setAutoSaveStatus('idle')
+      }
     } finally {
-      setLoading(false)
+      if (!isAutoSave) setLoading(false)
     }
   }
+
+  // Auto-save effect
+  useEffect(() => {
+    // Only auto-save if we have at least a name
+    if (!formData.name) return
+    
+    const timeoutId = setTimeout(() => {
+      saveProduct('draft', true)
+    }, 3000) // 3 seconds debounce
+    
+    return () => clearTimeout(timeoutId)
+  }, [formData, imageFile, additionalImageFiles])
 
   const formatDateForInput = (date: any) => {
     if (!date) return ''
@@ -355,7 +405,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={(e) => { e.preventDefault(); saveProduct('published'); }}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full justify-start h-auto flex-wrap gap-2 bg-transparent p-4 border-b rounded-none">
               <TabsTrigger value="basic" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-md px-4 py-2">Basic Info</TabsTrigger>
@@ -397,7 +447,10 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                       <Select value={formData.subcategory} onValueChange={(v) => setFormData(p => ({ ...p, subcategory: v }))} disabled={!formData.category}>
                         <SelectTrigger><SelectValue placeholder="Select Subcategory" /></SelectTrigger>
                         <SelectContent>
-                          {formData.category && categoriesData[formData.category]?.subcategories.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                          {formData.category && categoriesData[formData.category]?.subcategories.map((s: any) => {
+                            const subName = typeof s === 'string' ? s : s?.name || '';
+                            return <SelectItem key={subName} value={subName}>{subName}</SelectItem>;
+                          })}
                         </SelectContent>
                       </Select>
                       <Button type="button" variant="outline" onClick={() => setShowAddSubCategoryDialog(true)} disabled={!formData.category}><Plus className="h-4 w-4" /></Button>
@@ -684,20 +737,38 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 {activeTab === 'basic' ? 'Cancel' : 'Previous'}
               </Button>
 
-              {activeTab === 'seo' ? (
-                <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Save Product'}</Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'shipping', 'seo']
-                    const currentIndex = tabs.indexOf(activeTab)
-                    if (currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1])
-                  }}
+              <div className="flex items-center gap-2">
+                {autoSaveStatus === 'saving' && (
+                  <span className="text-xs text-muted-foreground mr-2">Saving...</span>
+                )}
+                {autoSaveStatus === 'saved' && lastSaved && (
+                  <span className="text-xs text-muted-foreground mr-2">
+                    Saved at {lastSaved.toLocaleTimeString()}
+                  </span>
+                )}
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={() => saveProduct('draft')} 
+                  disabled={loading}
                 >
-                  Next
+                  Save Draft
                 </Button>
-              )}
+                {activeTab === 'seo' ? (
+                  <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Publish Product'}</Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'shipping', 'seo']
+                      const currentIndex = tabs.indexOf(activeTab)
+                      if (currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1])
+                    }}
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
             </div>
 
           </Tabs>

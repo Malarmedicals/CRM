@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase/client'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import type { User } from '../domain/types'
 
-const USERS_TABLE = 'users'
+const USERS_TABLE = 'crm_users'
 
 export const authRepository = {
   async signUp(email: string, password: string, displayName: string): Promise<SupabaseUser> {

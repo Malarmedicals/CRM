@@ -132,6 +132,7 @@ export interface Product {
   isRecalled?: boolean
   isSensitive?: boolean
   healthConcern?: string
+  status?: 'draft' | 'published'
 }
 
 // Validation schemas

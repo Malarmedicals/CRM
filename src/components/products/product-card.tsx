@@ -83,11 +83,16 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
             </div>
 
             <div className="p-4 flex flex-col flex-1">
-                {/* Category Badge */}
-                <div className="mb-3">
+                {/* Category Badge & Status */}
+                <div className="mb-3 flex justify-between items-center">
                     <span className="inline-block bg-yellow-400 text-black text-xs font-medium px-2 py-1 rounded-md">
                         {product.category || 'Uncategorized'}
                     </span>
+                    {product.status === 'draft' && (
+                        <span className="inline-block bg-gray-200 text-gray-700 text-xs font-medium px-2 py-1 rounded-md">
+                            Draft
+                        </span>
+                    )}
                 </div>
 
                 {/* Title */}

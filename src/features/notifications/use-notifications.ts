@@ -6,6 +6,7 @@ export function useNotifications() {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
+        let isMounted = true;
         let channel: ReturnType<typeof supabase.channel> | undefined;
 
         const loadNotifications = async () => {
@@ -22,9 +23,10 @@ export function useNotifications() {
         }
 
         supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!isMounted) return;
             if (session) {
                 loadNotifications()
-                channel = supabase.channel('public:notifications')
+                channel = supabase.channel(`notifications-${Date.now()}`)
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => {
                         loadNotifications()
                     })
@@ -36,6 +38,7 @@ export function useNotifications() {
         });
 
         return () => {
+            isMounted = false;
             if (channel) supabase.removeChannel(channel);
         };
     }, []);
