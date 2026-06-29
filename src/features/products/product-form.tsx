@@ -80,6 +80,9 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
   const [formData, setFormData] = useState<Partial<Product>>(
     product ? {
       ...product,
+      mrp: product.mrp ?? product.price,
+      sellingPrice: product.sellingPrice ?? product.discount,
+      lowStockThreshold: product.lowStockThreshold ?? product.minStockLevel ?? 10,
       expiryDate: convertToDate(product.expiryDate),
       medicalInfo: product.medicalInfo || {},
       compliance: product.compliance || { prescriptionRequired: !!product.isSensitive },
@@ -331,6 +334,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
         additionalImages: finalAdditionalImages,
         price: formData.mrp, 
         discount: formData.sellingPrice, 
+        minStockLevel: formData.lowStockThreshold,
         status, 
         expiryDate: new Date(formData.expiryDate || Date.now()),
         updatedAt: new Date()

@@ -6,15 +6,18 @@ import type { Product } from '@/features/products/domain/types'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit, Trash, Search, Package, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash, Search, Package, ChevronLeft, ChevronRight, Upload, Download, FileSpreadsheet } from 'lucide-react'
 import ProductForm from '@/features/products/product-form'
 import { ProductCard } from '@/components/products/product-card'
+import { BulkImportModal } from '@/features/products/bulk-import-modal'
+import Papa from 'papaparse'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [showBulkImport, setShowBulkImport] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -70,24 +73,114 @@ export default function ProductsPage() {
     handleFormClose()
   }
 
+  const handleExportProducts = () => {
+    if (products.length === 0) {
+      alert('No products to export')
+      return
+    }
+    const exportData = products.map(p => ({
+      'Product Name': p.name,
+      'Description': p.description,
+      'Category': p.category,
+      'Subcategory': p.subcategory,
+      'Brand': p.brandName,
+      'MRP': p.mrp,
+      'Selling Price': p.discount,
+      'Stock Quantity': p.stockQuantity,
+      'Minimum Stock': p.minStockLevel,
+      'Batch Number': p.batchNumber,
+      'Expiry Date': p.expiryDate ? new Date(p.expiryDate).toISOString().split('T')[0] : '',
+      'Composition': p.medicalInfo?.composition,
+      'Dosage Form': p.medicalInfo?.dosageForm,
+      'Strength': p.medicalInfo?.strength,
+      'Indications': p.medicalInfo?.indications,
+      'Side Effects': p.medicalInfo?.sideEffects,
+      'Contraindications': p.medicalInfo?.contraindications,
+      'Storage Instructions': p.medicalInfo?.storageInstructions,
+      'Prescription Required': p.compliance?.prescriptionRequired ? 'Yes' : 'No',
+      'Narcotic': p.compliance?.scheduleType === 'x' ? 'Yes' : 'No',
+      'Schedule Type': p.compliance?.scheduleType,
+      'Cold Chain Required': p.shipping?.coldChainRequired ? 'Yes' : 'No',
+      'Extra Handling Fee': p.shipping?.extraHandlingFee,
+      'Meta Title': p.seo?.metaTitle,
+      'Meta Description': p.seo?.metaDescription,
+      'Keywords': p.seo?.metaKeywords,
+    }))
+    const csvContent = Papa.unparse(exportData)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'products_export.csv'
+    link.click()
+  }
+
+  const handleDownloadTemplate = () => {
+    const headers = [
+      'Product Name', 'Description', 'Category', 'Subcategory', 'Brand',
+      'MRP', 'Selling Price', 'Stock Quantity', 'Minimum Stock', 'Batch Number', 'Expiry Date',
+      'Composition', 'Dosage Form', 'Strength', 'Indications', 'Side Effects', 'Contraindications', 'Storage Instructions',
+      'Prescription Required', 'Narcotic', 'Schedule Type',
+      'Cold Chain Required', 'Extra Handling Fee',
+      'Meta Title', 'Meta Description', 'Keywords'
+    ]
+    const sampleRow = [
+      'Paracetamol 500mg', 'Used for fever and pain relief', 'Medicines', 'Fever', 'Cipla',
+      '50', '45', '100', '10', 'B2025-01', '2026-12-31',
+      'Paracetamol IP 500mg', 'Tablet', '500mg', 'Fever, Mild pain', 'Nausea, Rash', 'Liver disease', 'Store in a cool, dry place',
+      'No', 'No', 'OTC',
+      'No', '0',
+      'Buy Paracetamol 500mg Online', 'Get fast relief from fever with Paracetamol 500mg.', 'paracetamol, fever, painkiller'
+    ]
+    const csvContent = Papa.unparse([headers, sampleRow])
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = 'product_import_template.csv'
+    link.click()
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
           <p className="text-muted-foreground mt-1">Manage medicines and products</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingProduct(null)
-            setShowForm(true)
-          }}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add Product
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={handleDownloadTemplate} className="gap-2 text-muted-foreground">
+            <FileSpreadsheet className="h-4 w-4" />
+            Template
+          </Button>
+          <Button variant="outline" onClick={handleExportProducts} className="gap-2">
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button variant="outline" onClick={() => setShowBulkImport(true)} className="gap-2">
+            <Upload className="h-4 w-4" />
+            Bulk Import
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingProduct(null)
+              setShowForm(true)
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Product
+          </Button>
+        </div>
       </div>
+
+      {showBulkImport && (
+        <BulkImportModal 
+          onClose={() => setShowBulkImport(false)} 
+          onSuccess={() => {
+            setShowBulkImport(false)
+            loadProducts()
+          }} 
+        />
+      )}
 
       {showForm && (
         <ProductForm

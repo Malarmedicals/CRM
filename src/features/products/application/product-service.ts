@@ -62,6 +62,16 @@ export const productService = {
     }
   },
 
+  async addManyProducts(productsData: any[]): Promise<void> {
+    try {
+      await productRepository.insertMany(productsData)
+      logger.info(`Successfully added ${productsData.length} products`)
+    } catch (error: any) {
+      logger.error('Failed to add multiple products', error)
+      throw new Error(`Failed to add products: ${error.message}`)
+    }
+  },
+
   async updateProduct(id: string, productData: any): Promise<void> {
     try {
       await productRepository.update(id, productData)
