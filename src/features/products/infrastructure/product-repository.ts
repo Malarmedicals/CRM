@@ -27,6 +27,11 @@ export function mapDbRowToProduct(doc: any): Product {
     brandName: doc.brand,
     lastRestocked: doc.last_restocked ? new Date(doc.last_restocked) : undefined,
     minStockLevel: doc.min_stock_level,
+    stockStatus: doc.stock_status || 'in-stock',
+    medicalInfo: doc.medical_info || {},
+    compliance: doc.compliance || {},
+    shipping: doc.shipping || {},
+    seo: doc.seo || {},
     createdAt: safeDate(doc.created_at),
     updatedAt: safeDate(doc.updated_at),
     status: doc.is_active ? 'published' : 'draft',
@@ -109,6 +114,7 @@ export const productRepository = {
       batch_number: productData.batchNumber,
       expiry_date: productData.expiryDate,
       min_stock_level: productData.minStockLevel || 10,
+      stock_status: productData.stockStatus || 'in-stock',
       seo: productData.seo,
       compliance: productData.compliance,
       shipping: productData.shipping,
@@ -119,6 +125,38 @@ export const productRepository = {
     const { data, error } = await supabase.from(PRODUCTS_TABLE).insert(insertPayload).select().single()
     if (error) throw error
     return data.id
+  },
+
+  async insertMany(productsData: any[]): Promise<void> {
+    const payloads = productsData.map(productData => ({
+      name: productData.name,
+      description: productData.description,
+      price: productData.price || 0,
+      mrp: productData.mrp || 0,
+      discount: productData.discount || 0,
+      category: productData.category,
+      subcategory: productData.subcategory,
+      brand: productData.brandName,
+      stock_quantity: productData.stockQuantity || 0,
+      image_url: productData.primaryImage,
+      additional_images: productData.additionalImages || [],
+      batch_number: productData.batchNumber,
+      expiry_date: productData.expiryDate,
+      min_stock_level: productData.minStockLevel || 10,
+      stock_status: productData.stockStatus || 'in-stock',
+      seo: productData.seo,
+      compliance: productData.compliance,
+      shipping: productData.shipping,
+      medical_info: productData.medicalInfo,
+      is_active: productData.status === 'published' || productData.status === undefined,
+    }));
+
+    const chunkSize = 500;
+    for (let i = 0; i < payloads.length; i += chunkSize) {
+      const chunk = payloads.slice(i, i + chunkSize);
+      const { error } = await supabase.from(PRODUCTS_TABLE).insert(chunk);
+      if (error) throw error;
+    }
   },
 
   async update(id: string, productData: any): Promise<void> {
@@ -144,6 +182,7 @@ export const productRepository = {
     if (productData.compliance !== undefined) updatePayload.compliance = productData.compliance;
     if (productData.shipping !== undefined) updatePayload.shipping = productData.shipping;
     if (productData.medicalInfo !== undefined) updatePayload.medical_info = productData.medicalInfo;
+    if (productData.stockStatus !== undefined) updatePayload.stock_status = productData.stockStatus;
     
     if (productData.status) {
       updatePayload.is_active = productData.status === 'published';
