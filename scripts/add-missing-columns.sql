@@ -49,3 +49,6 @@ CREATE TABLE IF NOT EXISTS public.banners (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS gst_rate NUMERIC;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS hsn_code TEXT;

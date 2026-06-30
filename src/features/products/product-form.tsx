@@ -84,10 +84,32 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       sellingPrice: product.sellingPrice ?? product.discount,
       lowStockThreshold: product.lowStockThreshold ?? product.minStockLevel ?? 10,
       expiryDate: convertToDate(product.expiryDate),
-      medicalInfo: product.medicalInfo || {},
-      compliance: product.compliance || { prescriptionRequired: !!product.isSensitive },
-      shipping: product.shipping || {},
-      seo: product.seo || {},
+      medicalInfo: {
+        composition: product.medicalInfo?.composition || '',
+        strength: product.medicalInfo?.strength || '',
+        dosageForm: product.medicalInfo?.dosageForm || '',
+        packSize: product.medicalInfo?.packSize || '',
+        usageInstructions: product.medicalInfo?.usageInstructions || '',
+        sideEffects: product.medicalInfo?.sideEffects || '',
+        storageInstructions: product.medicalInfo?.storageInstructions || '',
+      },
+      compliance: {
+        prescriptionRequired: product.compliance?.prescriptionRequired ?? !!product.isSensitive,
+        scheduleType: product.compliance?.scheduleType || 'otc',
+        ageRestriction: product.compliance?.ageRestriction || false,
+        pharmacistApprovalRequired: product.compliance?.pharmacistApprovalRequired || false,
+      },
+      shipping: {
+        coldChainRequired: product.shipping?.coldChainRequired || false,
+        shippingZones: product.shipping?.shippingZones || [],
+        extraHandlingFee: product.shipping?.extraHandlingFee ?? undefined,
+      },
+      seo: {
+        slug: product.seo?.slug || '',
+        metaTitle: product.seo?.metaTitle || '',
+        metaDescription: product.seo?.metaDescription || '',
+        metaKeywords: product.seo?.metaKeywords || '',
+      },
     } : {
       name: '',
       description: '',
@@ -417,7 +439,6 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
               <TabsTrigger value="pricing" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 rounded-md px-4 py-2">Pricing & Tax</TabsTrigger>
               <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 rounded-md px-4 py-2">Inventory & Batch</TabsTrigger>
               <TabsTrigger value="compliance" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 rounded-md px-4 py-2">Compliance</TabsTrigger>
-              <TabsTrigger value="shipping" className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 rounded-md px-4 py-2">Delivery</TabsTrigger>
               <TabsTrigger value="seo" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-700 rounded-md px-4 py-2">SEO</TabsTrigger>
             </TabsList>
 
@@ -537,7 +558,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                   </div>
                   <div className="space-y-2">
                     <Label>Dosage Form</Label>
-                    <Select value={formData.medicalInfo?.dosageForm} onValueChange={(v) => handleNestedChange('medicalInfo', 'dosageForm', v)}>
+                    <Select value={formData.medicalInfo?.dosageForm || undefined} onValueChange={(v) => handleNestedChange('medicalInfo', 'dosageForm', v)}>
                       <SelectTrigger><SelectValue placeholder="Select Form" /></SelectTrigger>
                       <SelectContent>
                         {['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Gel', 'Drops', 'Powder', 'Spray'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
@@ -680,26 +701,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 </div>
               </TabsContent>
 
-              {/* --- DELIVERY TAB --- */}
-              <TabsContent value="shipping" className="space-y-6 mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Estimated Delivery Time</Label>
-                    <Input name="estimatedDelivery" value={formData.estimatedDelivery || ''} onChange={handleInputChange} placeholder="e.g. 2-3 Days" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Extra Handling Fee (₹)</Label>
-                    <Input type="number" value={formData.shipping?.extraHandlingFee ?? ''} onChange={(e) => handleNestedChange('shipping', 'extraHandlingFee', parseFloat(e.target.value))} placeholder="0.00" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 border p-4 rounded-md">
-                  <Switch checked={formData.shipping?.coldChainRequired} onCheckedChange={(c) => handleNestedChange('shipping', 'coldChainRequired', c)} />
-                  <div>
-                    <Label>Cold Chain Storage Required?</Label>
-                    <p className="text-sm text-muted-foreground">Keep refrigerated during transit.</p>
-                  </div>
-                </div>
-              </TabsContent>
+
 
               {/* --- SEO TAB --- */}
               <TabsContent value="seo" className="space-y-6 mt-0">
@@ -732,7 +734,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'shipping', 'seo']
+                  const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'seo']
                   const currentIndex = tabs.indexOf(activeTab)
                   if (currentIndex > 0) setActiveTab(tabs[currentIndex - 1])
                   else onClose()
@@ -758,13 +760,12 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 >
                   Save Draft
                 </Button>
-                {activeTab === 'seo' ? (
-                  <Button type="submit" disabled={loading}>{loading ? 'Saving...' : 'Publish Product'}</Button>
-                ) : (
+                {activeTab !== 'seo' && (
                   <Button
                     type="button"
+                    variant="outline"
                     onClick={() => {
-                      const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'shipping', 'seo']
+                      const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'seo']
                       const currentIndex = tabs.indexOf(activeTab)
                       if (currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1])
                     }}
@@ -772,6 +773,9 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                     Next
                   </Button>
                 )}
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : (product ? 'Save Changes' : 'Publish Product')}
+                </Button>
               </div>
             </div>
 
