@@ -35,6 +35,8 @@ export function mapDbRowToProduct(doc: any): Product {
     createdAt: safeDate(doc.created_at),
     updatedAt: safeDate(doc.updated_at),
     status: doc.is_active ? 'published' : 'draft',
+    gstRate: doc.gst_rate,
+    hsnCode: doc.hsn_code,
   } as Product
 }
 
@@ -98,6 +100,24 @@ export const productRepository = {
     return count || 0
   },
 
+  async getExistingIdentifiers(): Promise<{ name: string, batchNumber: string }[]> {
+    const { data, error } = await supabase.from(PRODUCTS_TABLE).select('name, batch_number')
+    if (error) throw error
+    return data.map((d: any) => ({ name: d.name, batchNumber: d.batch_number }))
+  },
+
+  async getUniqueCategories(): Promise<{ categories: string[], subcategories: string[] }> {
+    const { data, error } = await supabase.from(PRODUCTS_TABLE).select('category, subcategory')
+    if (error) throw error
+    const cats = new Set<string>()
+    const subcats = new Set<string>()
+    data.forEach((d: any) => {
+      if (d.category) cats.add(d.category)
+      if (d.subcategory) subcats.add(d.subcategory)
+    })
+    return { categories: Array.from(cats), subcategories: Array.from(subcats) }
+  },
+
   async insert(productData: any): Promise<string> {
     const insertPayload: any = {
       name: productData.name,
@@ -119,6 +139,8 @@ export const productRepository = {
       compliance: productData.compliance,
       shipping: productData.shipping,
       medical_info: productData.medicalInfo,
+      gst_rate: productData.gstRate,
+      hsn_code: productData.hsnCode,
       is_active: productData.status === 'published' || productData.status === undefined,
     };
 
@@ -128,6 +150,9 @@ export const productRepository = {
   },
 
   async insertMany(productsData: any[]): Promise<void> {
+    if (productsData.length > 500) {
+      throw new Error("Cannot insert more than 500 products at once.")
+    }
     const payloads = productsData.map(productData => ({
       name: productData.name,
       description: productData.description,
@@ -148,15 +173,14 @@ export const productRepository = {
       compliance: productData.compliance,
       shipping: productData.shipping,
       medical_info: productData.medicalInfo,
+      gst_rate: productData.gstRate,
+      hsn_code: productData.hsnCode,
       is_active: productData.status === 'published' || productData.status === undefined,
     }));
 
-    const chunkSize = 500;
-    for (let i = 0; i < payloads.length; i += chunkSize) {
-      const chunk = payloads.slice(i, i + chunkSize);
-      const { error } = await supabase.from(PRODUCTS_TABLE).insert(chunk);
-      if (error) throw error;
-    }
+    // Insert all at once to ensure a single transaction (all-or-nothing for the batch)
+    const { error } = await supabase.from(PRODUCTS_TABLE).insert(payloads);
+    if (error) throw error;
   },
 
   async update(id: string, productData: any): Promise<void> {
@@ -183,6 +207,8 @@ export const productRepository = {
     if (productData.shipping !== undefined) updatePayload.shipping = productData.shipping;
     if (productData.medicalInfo !== undefined) updatePayload.medical_info = productData.medicalInfo;
     if (productData.stockStatus !== undefined) updatePayload.stock_status = productData.stockStatus;
+    if (productData.gstRate !== undefined) updatePayload.gst_rate = productData.gstRate;
+    if (productData.hsnCode !== undefined) updatePayload.hsn_code = productData.hsnCode;
     
     if (productData.status) {
       updatePayload.is_active = productData.status === 'published';

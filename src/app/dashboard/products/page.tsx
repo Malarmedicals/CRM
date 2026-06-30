@@ -11,15 +11,14 @@ import ProductForm from '@/features/products/product-form'
 import { ProductCard } from '@/components/products/product-card'
 import { BulkImportModal } from '@/features/products/bulk-import-modal'
 import Papa from 'papaparse'
-
+import { useRouter } from 'next/navigation'
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [showForm, setShowForm] = useState(false)
   const [showBulkImport, setShowBulkImport] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     loadProducts()
@@ -63,16 +62,6 @@ export default function ProductsPage() {
     }
   }
 
-  const handleFormClose = () => {
-    setShowForm(false)
-    setEditingProduct(null)
-  }
-
-  const handleFormSuccess = () => {
-    loadProducts()
-    handleFormClose()
-  }
-
   const handleExportProducts = () => {
     if (products.length === 0) {
       alert('No products to export')
@@ -90,6 +79,8 @@ export default function ProductsPage() {
       'Minimum Stock': p.minStockLevel,
       'Batch Number': p.batchNumber,
       'Expiry Date': p.expiryDate ? new Date(p.expiryDate).toISOString().split('T')[0] : '',
+      'GST Rate (%)': p.gstRate,
+      'HSN Code': p.hsnCode,
       'Composition': p.medicalInfo?.composition,
       'Dosage Form': p.medicalInfo?.dosageForm,
       'Strength': p.medicalInfo?.strength,
@@ -100,8 +91,6 @@ export default function ProductsPage() {
       'Prescription Required': p.compliance?.prescriptionRequired ? 'Yes' : 'No',
       'Narcotic': p.compliance?.scheduleType === 'x' ? 'Yes' : 'No',
       'Schedule Type': p.compliance?.scheduleType,
-      'Cold Chain Required': p.shipping?.coldChainRequired ? 'Yes' : 'No',
-      'Extra Handling Fee': p.shipping?.extraHandlingFee,
       'Meta Title': p.seo?.metaTitle,
       'Meta Description': p.seo?.metaDescription,
       'Keywords': p.seo?.metaKeywords,
@@ -118,17 +107,17 @@ export default function ProductsPage() {
     const headers = [
       'Product Name', 'Description', 'Category', 'Subcategory', 'Brand',
       'MRP', 'Selling Price', 'Stock Quantity', 'Minimum Stock', 'Batch Number', 'Expiry Date',
+      'GST Rate (%)', 'HSN Code',
       'Composition', 'Dosage Form', 'Strength', 'Indications', 'Side Effects', 'Contraindications', 'Storage Instructions',
       'Prescription Required', 'Narcotic', 'Schedule Type',
-      'Cold Chain Required', 'Extra Handling Fee',
       'Meta Title', 'Meta Description', 'Keywords'
     ]
     const sampleRow = [
       'Paracetamol 500mg', 'Used for fever and pain relief', 'Medicines', 'Fever', 'Cipla',
       '50', '45', '100', '10', 'B2025-01', '2026-12-31',
+      '12', '3004',
       'Paracetamol IP 500mg', 'Tablet', '500mg', 'Fever, Mild pain', 'Nausea, Rash', 'Liver disease', 'Store in a cool, dry place',
       'No', 'No', 'OTC',
-      'No', '0',
       'Buy Paracetamol 500mg Online', 'Get fast relief from fever with Paracetamol 500mg.', 'paracetamol, fever, painkiller'
     ]
     const csvContent = Papa.unparse([headers, sampleRow])
@@ -160,10 +149,7 @@ export default function ProductsPage() {
             Bulk Import
           </Button>
           <Button
-            onClick={() => {
-              setEditingProduct(null)
-              setShowForm(true)
-            }}
+            onClick={() => router.push('/dashboard/products/add')}
             className="gap-2"
           >
             <Plus className="h-4 w-4" />
@@ -181,15 +167,6 @@ export default function ProductsPage() {
           }} 
         />
       )}
-
-      {showForm && (
-        <ProductForm
-          product={editingProduct}
-          onClose={handleFormClose}
-          onSuccess={handleFormSuccess}
-        />
-      )}
-
       <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input
@@ -205,10 +182,7 @@ export default function ProductsPage() {
           <ProductCard
             key={product.id}
             product={product}
-            onEdit={() => {
-              setEditingProduct(product)
-              setShowForm(true)
-            }}
+            onEdit={() => router.push(`/dashboard/products/${product.id}/edit`)}
             onDelete={() => handleDelete(product.id)}
           />
         ))}

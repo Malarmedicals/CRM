@@ -7,6 +7,14 @@ import { productRepository, stockMovementRepository } from '../infrastructure/pr
 import type { Product, StockMovement } from '../domain/types'
 
 export const productService = {
+  async getExistingIdentifiers(): Promise<{ name: string, batchNumber: string }[]> {
+    return await productRepository.getExistingIdentifiers();
+  },
+
+  async getUniqueCategories(): Promise<{ categories: string[], subcategories: string[] }> {
+    return await productRepository.getUniqueCategories();
+  },
+
   async getAllProducts(): Promise<Product[]> {
     try {
       return await productRepository.getAll()
@@ -69,6 +77,99 @@ export const productService = {
     } catch (error: any) {
       logger.error('Failed to add multiple products', error)
       throw new Error(`Failed to add products: ${error.message}`)
+    }
+  },
+
+  async importProductsWithImages(productsData: any[], imageFilesMap: Map<string, File>): Promise<void> {
+    // 1. Authoritative Validation
+    if (productsData.length > 500) {
+      throw new Error("Batch size exceeds 500 rows limit.");
+    }
+    const identifiers = await productRepository.getExistingIdentifiers();
+    const existingNames = new Set(identifiers.map(i => i.name.toLowerCase()));
+    const existingBatches = new Set(identifiers.map(i => i.batchNumber.toLowerCase()));
+    const { categories, subcategories } = await productRepository.getUniqueCategories();
+    const validCats = new Set(categories.map(c => c.toLowerCase()));
+    const validSubcats = new Set(subcategories.map(c => c.toLowerCase()));
+    const validSchedules = new Set(['otc', 'h', 'h1', 'x']);
+
+    const batchNames = new Set();
+    const batchBatches = new Set();
+
+    for (const product of productsData) {
+      // In-file duplicate check
+      const lowerName = product.name?.toLowerCase();
+      const lowerBatch = product.batchNumber?.toLowerCase();
+
+      if (batchNames.has(lowerName)) throw new Error(`Duplicate Product Name in file: ${product.name}`);
+      if (batchBatches.has(lowerBatch)) throw new Error(`Duplicate Batch Number in file: ${product.batchNumber}`);
+      batchNames.add(lowerName);
+      batchBatches.add(lowerBatch);
+
+      // DB duplicate check
+      if (existingNames.has(lowerName)) throw new Error(`Product Name already exists in database: ${product.name}`);
+      if (existingBatches.has(lowerBatch)) throw new Error(`Batch Number already exists in database: ${product.batchNumber}`);
+
+      // MRP >= Selling Price check
+      if (product.mrp < (product.discount || 0)) {
+        throw new Error(`MRP (${product.mrp}) cannot be less than Selling Price (${product.discount}) for ${product.name}`);
+      }
+
+      // Expiry Date > Today
+      if (product.expiryDate && new Date(product.expiryDate) <= new Date()) {
+        throw new Error(`Expiry Date must be in the future for ${product.name}`);
+      }
+
+      // Enums Validation
+      if (!validCats.has(product.category?.toLowerCase())) throw new Error(`Invalid Category: ${product.category}`);
+      if (product.subcategory && !validSubcats.has(product.subcategory?.toLowerCase())) {
+         // Some products might have new subcategories or none, but strict enum validation requested
+         throw new Error(`Invalid Subcategory: ${product.subcategory}`);
+      }
+      if (product.compliance?.scheduleType && !validSchedules.has(product.compliance.scheduleType.toLowerCase())) {
+         throw new Error(`Invalid Schedule Type: ${product.compliance.scheduleType}`);
+      }
+    }
+
+    // 2. Upload Images
+    const uploadedPaths: string[] = [];
+    const uploadedUrls = new Map<string, string>(); // image filename -> public URL
+
+    try {
+      // Upload all needed images
+      for (const [filename, file] of imageFilesMap.entries()) {
+        const refName = `products/bulk_${Date.now()}_${filename.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const { data, error } = await supabase.storage.from('products').upload(refName, file);
+        if (error) throw error;
+        
+        uploadedPaths.push(data.path);
+        const publicUrl = supabase.storage.from('products').getPublicUrl(data.path).data.publicUrl;
+        uploadedUrls.set(filename, publicUrl);
+      }
+
+      // 3. Assign image URLs to products
+      const finalProducts = productsData.map(p => {
+        const mainImgUrl = p._mainImageFilename ? uploadedUrls.get(p._mainImageFilename) : p.primaryImage;
+        const additionalUrls = (p._additionalImageFilenames || []).map((name: string) => uploadedUrls.get(name)).filter(Boolean);
+        return {
+          ...p,
+          primaryImage: mainImgUrl,
+          images: additionalUrls
+        };
+      });
+
+      // 4. All-or-nothing DB Insert
+      await productRepository.insertMany(finalProducts);
+      logger.info(`Successfully imported ${productsData.length} products with images`);
+
+    } catch (error: any) {
+      logger.error('Import transaction failed, rolling back images', error);
+      // Explicit cleanup on failure
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from('products').remove(uploadedPaths);
+        logger.info(`Rolled back ${uploadedPaths.length} uploaded images`);
+      }
+      throw new Error(`Import Failed: ${error.message}`);
     }
   },
 
