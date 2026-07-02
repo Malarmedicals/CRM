@@ -109,6 +109,10 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
         metaTitle: product.seo?.metaTitle || '',
         metaDescription: product.seo?.metaDescription || '',
         metaKeywords: product.seo?.metaKeywords || '',
+        isNewArrival: product.seo?.isNewArrival || false,
+        isBestSeller: product.seo?.isBestSeller || false,
+        isTrending: product.seo?.isTrending || false,
+        isDailyEssential: product.seo?.isDailyEssential || false,
       },
     } : {
       name: '',
@@ -145,7 +149,11 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
       seo: {
         slug: '',
         metaTitle: '',
-        metaDescription: ''
+        metaDescription: '',
+        isNewArrival: false,
+        isBestSeller: false,
+        isTrending: false,
+        isDailyEssential: false,
       },
       discountType: 'percentage',
       taxType: 'exclusive',
@@ -197,10 +205,24 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
         const { data, error } = await supabase.from('health_concerns').select('name')
         if (error) throw error
         const concerns: string[] = []
-        data.forEach((doc: any) => { if (doc.name) concerns.push(doc.name) })
+        if (data && data.length > 0) {
+          data.forEach((doc: any) => { if (doc.name) concerns.push(doc.name) })
+        } else {
+          // Fallback to static list from e-commerce if DB is empty
+          concerns.push(
+            'Diabetes', 'Heart Care', 'Stomach Care', 'Liver Care', 
+            'Bone, Joint & Muscle', 'Kidney Care', 'Eye Care', 
+            'Respiratory Care', 'Skin Care'
+          )
+        }
         setHealthConcerns(concerns.sort())
       } catch (error) {
         console.error('Error loading health concerns:', error)
+        // Fallback on error
+        setHealthConcerns([
+          'Bone, Joint & Muscle', 'Diabetes', 'Eye Care', 'Heart Care', 
+          'Kidney Care', 'Liver Care', 'Respiratory Care', 'Skin Care', 'Stomach Care'
+        ])
       }
     }
     loadHealthConcerns()
@@ -724,6 +746,29 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <div className="space-y-2">
                   <Label>Keywords</Label>
                   <Input value={formData.seo?.metaKeywords || ''} onChange={(e) => handleNestedChange('seo', 'metaKeywords', e.target.value)} placeholder="Comma, separated, keywords" />
+                </div>
+                <div className="pt-4 mt-6 border-t space-y-4">
+                  <Label className="text-lg">Homepage Visibility</Label>
+                  <p className="text-sm text-muted-foreground mb-4">Toggle these switches to feature this product on the e-Commerce homepage.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between border p-3 rounded-md">
+                      <Label>New Arrival</Label>
+                      <Switch checked={formData.seo?.isNewArrival || false} onCheckedChange={(c) => handleNestedChange('seo', 'isNewArrival', c)} />
+                    </div>
+                    <div className="flex items-center justify-between border p-3 rounded-md">
+                      <Label>Best Seller</Label>
+                      <Switch checked={formData.seo?.isBestSeller || false} onCheckedChange={(c) => handleNestedChange('seo', 'isBestSeller', c)} />
+                    </div>
+                    <div className="flex items-center justify-between border p-3 rounded-md">
+                      <Label>Trending Product</Label>
+                      <Switch checked={formData.seo?.isTrending || false} onCheckedChange={(c) => handleNestedChange('seo', 'isTrending', c)} />
+                    </div>
+                    <div className="flex items-center justify-between border p-3 rounded-md">
+                      <Label>Daily Essential (Expert Pick)</Label>
+                      <Switch checked={formData.seo?.isDailyEssential || false} onCheckedChange={(c) => handleNestedChange('seo', 'isDailyEssential', c)} />
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </div>

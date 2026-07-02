@@ -129,6 +129,7 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
     const schColIdx = TEMPLATE_HEADERS.indexOf('Schedule Type') + 1;
     const preColIdx = TEMPLATE_HEADERS.indexOf('Prescription Required') + 1;
     const narColIdx = TEMPLATE_HEADERS.indexOf('Narcotic') + 1;
+    const gstColIdx = TEMPLATE_HEADERS.indexOf('GST Rate (%)') + 1;
 
     for (let i = 2; i <= 1000; i++) {
       if (dbData.categories.length > 0) {
@@ -147,6 +148,8 @@ export function BulkImportModal({ onClose, onSuccess }: BulkImportModalProps) {
       const yesNo = '"Yes,No"';
       worksheet.getCell(i, preColIdx).dataValidation = { type: 'list', allowBlank: true, formulae: [yesNo] };
       worksheet.getCell(i, narColIdx).dataValidation = { type: 'list', allowBlank: true, formulae: [yesNo] };
+      const gstRates = '"0,5,12,18,28"';
+      worksheet.getCell(i, gstColIdx).dataValidation = { type: 'list', allowBlank: true, formulae: [gstRates] };
     }
 
     const buffer = await workbook.xlsx.writeBuffer();

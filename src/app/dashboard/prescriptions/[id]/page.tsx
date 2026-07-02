@@ -158,7 +158,20 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                 notes
             )
 
-            // Order creation removed as per requirement - User will presumably confirm from their end
+            // Notify the customer
+            try {
+                const { supabase } = await import('@/lib/supabase/client')
+                await supabase.from('notifications').insert({
+                    title: 'Prescription Approved',
+                    message: 'Your prescription has been verified. You can now place an order.',
+                    type: 'success',
+                    is_read: false,
+                    user_id: prescription.user_id || prescription.userId || 'customer',
+                    created_at: new Date().toISOString()
+                })
+            } catch (err) {
+                console.error('Failed to notify customer:', err)
+            }
 
             toast.success('Prescription approved successfully')
             router.push('/dashboard/prescriptions')

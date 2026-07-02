@@ -14,9 +14,10 @@ export default function EditProductPage() {
 
     useEffect(() => {
         const fetchProduct = async () => {
-            if (params.id) {
+            const id = params?.id as string | undefined;
+            if (id) {
                 try {
-                    const data = await productService.getProductById(params.id as string)
+                    const data = await productService.getProductById(id)
                     setProduct(data)
                 } catch (error) {
                     console.error('Failed to load product:', error)
@@ -26,7 +27,7 @@ export default function EditProductPage() {
             }
         }
         fetchProduct()
-    }, [params.id])
+    }, [params])
 
     const handleClose = () => {
         router.push('/dashboard/products')

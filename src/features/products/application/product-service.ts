@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase/client'
 import { logger } from '@/core/logger/logger'
 import { NotFoundError, UnauthorizedError } from '@/core/errors/AppError'
 import { productRepository, stockMovementRepository } from '../infrastructure/product-repository'
+import { categoryRepository } from '@/features/categories/infrastructure/category-repository'
 import type { Product, StockMovement } from '../domain/types'
 
 export const productService = {
@@ -12,7 +13,10 @@ export const productService = {
   },
 
   async getUniqueCategories(): Promise<{ categories: string[], subcategories: string[] }> {
-    return await productRepository.getUniqueCategories();
+    const categoriesDb = await categoryRepository.getAll();
+    const categories = categoriesDb.map(c => c.name);
+    const subcategories = Array.from(new Set(categoriesDb.flatMap(c => c.subcategories || [])));
+    return { categories, subcategories };
   },
 
   async getAllProducts(): Promise<Product[]> {
@@ -21,6 +25,15 @@ export const productService = {
     } catch (error: any) {
       logger.error('Failed to fetch all products', error)
       throw new Error(`Failed to fetch products: ${error.message}`)
+    }
+  },
+
+  async getProductById(id: string): Promise<Product | null> {
+    try {
+      return await productRepository.getById(id)
+    } catch (error: any) {
+      logger.error('Failed to fetch product by id', error, { productId: id })
+      throw new Error(`Failed to fetch product: ${error.message}`)
     }
   },
 
@@ -59,28 +72,30 @@ export const productService = {
     }
   },
 
-  async addProduct(productData: any): Promise<string> {
+  async addProduct(productData: Partial<Product>): Promise<string> {
     try {
       const id = await productRepository.insert(productData)
       logger.info('Product added', { productId: id, name: productData.name })
       return id
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       logger.error('Failed to add product', error, { name: productData.name })
       throw new Error(`Failed to add product: ${error.message}`)
     }
   },
 
-  async addManyProducts(productsData: any[]): Promise<void> {
+  async addManyProducts(productsData: Partial<Product>[]): Promise<void> {
     try {
       await productRepository.insertMany(productsData)
       logger.info(`Successfully added ${productsData.length} products`)
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       logger.error('Failed to add multiple products', error)
       throw new Error(`Failed to add products: ${error.message}`)
     }
   },
 
-  async importProductsWithImages(productsData: any[], imageFilesMap: Map<string, File>): Promise<void> {
+  async importProductsWithImages(productsData: (Partial<Product> & { _mainImageFilename?: string, _additionalImageFilenames?: string[] })[], imageFilesMap: Map<string, File>): Promise<void> {
     // 1. Authoritative Validation
     if (productsData.length > 500) {
       throw new Error("Batch size exceeds 500 rows limit.");
@@ -98,8 +113,8 @@ export const productService = {
 
     for (const product of productsData) {
       // In-file duplicate check
-      const lowerName = product.name?.toLowerCase();
-      const lowerBatch = product.batchNumber?.toLowerCase();
+      const lowerName = product.name?.toLowerCase() || '';
+      const lowerBatch = product.batchNumber?.toLowerCase() || '';
 
       if (batchNames.has(lowerName)) throw new Error(`Duplicate Product Name in file: ${product.name}`);
       if (batchBatches.has(lowerBatch)) throw new Error(`Duplicate Batch Number in file: ${product.batchNumber}`);
@@ -111,7 +126,7 @@ export const productService = {
       if (existingBatches.has(lowerBatch)) throw new Error(`Batch Number already exists in database: ${product.batchNumber}`);
 
       // MRP >= Selling Price check
-      if (product.mrp < (product.discount || 0)) {
+      if (product.mrp !== undefined && product.mrp < (product.discount || 0)) {
         throw new Error(`MRP (${product.mrp}) cannot be less than Selling Price (${product.discount}) for ${product.name}`);
       }
 
@@ -121,8 +136,8 @@ export const productService = {
       }
 
       // Enums Validation
-      if (!validCats.has(product.category?.toLowerCase())) throw new Error(`Invalid Category: ${product.category}`);
-      if (product.subcategory && !validSubcats.has(product.subcategory?.toLowerCase())) {
+      if (!product.category || !validCats.has(product.category.toLowerCase())) throw new Error(`Invalid Category: ${product.category}`);
+      if (product.subcategory && !validSubcats.has(product.subcategory.toLowerCase())) {
          // Some products might have new subcategories or none, but strict enum validation requested
          throw new Error(`Invalid Subcategory: ${product.subcategory}`);
       }
@@ -173,11 +188,12 @@ export const productService = {
     }
   },
 
-  async updateProduct(id: string, productData: any): Promise<void> {
+  async updateProduct(id: string, productData: Partial<Product>): Promise<void> {
     try {
       await productRepository.update(id, productData)
       logger.info('Product updated', { productId: id })
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as Error;
       logger.error('Failed to update product', error, { productId: id })
       throw new Error(`Failed to update product: ${error.message}`)
     }

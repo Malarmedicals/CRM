@@ -37,6 +37,7 @@ export function mapDbRowToProduct(doc: any): Product {
     status: doc.is_active ? 'published' : 'draft',
     gstRate: doc.gst_rate,
     hsnCode: doc.hsn_code,
+    healthConcern: doc.seo?.health_concern || doc.health_concern,
   } as Product
 }
 
@@ -135,7 +136,7 @@ export const productRepository = {
       expiry_date: productData.expiryDate,
       min_stock_level: productData.minStockLevel || 10,
       stock_status: productData.stockStatus || 'in-stock',
-      seo: productData.seo,
+      seo: { ...productData.seo, health_concern: productData.healthConcern },
       compliance: productData.compliance,
       shipping: productData.shipping,
       medical_info: productData.medicalInfo,
@@ -169,7 +170,7 @@ export const productRepository = {
       expiry_date: productData.expiryDate,
       min_stock_level: productData.minStockLevel || 10,
       stock_status: productData.stockStatus || 'in-stock',
-      seo: productData.seo,
+      seo: { ...productData.seo, health_concern: productData.healthConcern },
       compliance: productData.compliance,
       shipping: productData.shipping,
       medical_info: productData.medicalInfo,
@@ -202,7 +203,9 @@ export const productRepository = {
     if (productData.batchNumber !== undefined) updatePayload.batch_number = productData.batchNumber;
     if (productData.expiryDate !== undefined) updatePayload.expiry_date = productData.expiryDate;
     if (productData.minStockLevel !== undefined) updatePayload.min_stock_level = productData.minStockLevel;
-    if (productData.seo !== undefined) updatePayload.seo = productData.seo;
+    if (productData.seo !== undefined || productData.healthConcern !== undefined) {
+      updatePayload.seo = { ...(productData.seo || {}), health_concern: productData.healthConcern };
+    }
     if (productData.compliance !== undefined) updatePayload.compliance = productData.compliance;
     if (productData.shipping !== undefined) updatePayload.shipping = productData.shipping;
     if (productData.medicalInfo !== undefined) updatePayload.medical_info = productData.medicalInfo;
