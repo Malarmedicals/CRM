@@ -4,14 +4,16 @@ import type { Product } from '@/features/products/domain/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Package, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 interface ProductCardProps {
     product: Product
     onEdit: () => void
     onDelete: () => void
+    onToggleVisibility?: (flag: 'isNewArrival' | 'isBestSeller' | 'isTrending' | 'isDailyEssential', value: boolean) => void
 }
 
-export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
+export function ProductCard({ product, onEdit, onDelete, onToggleVisibility }: ProductCardProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
     // Combine primary and additional images
@@ -101,11 +103,45 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
                 </h3>
 
                 {/* Price & Stock info */}
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                     <span className="font-medium text-gray-900">₹{product.price?.toFixed(2)}</span>
                     <span>•</span>
                     <span>{product.stockQuantity} items</span>
                 </div>
+
+                {/* Homepage Visibility */}
+                {onToggleVisibility && (
+                    <div className="flex flex-wrap gap-1 mb-4">
+                        <Badge
+                            variant={product.seo?.isNewArrival ? 'default' : 'outline'}
+                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            onClick={() => onToggleVisibility('isNewArrival', !product.seo?.isNewArrival)}
+                        >
+                            New
+                        </Badge>
+                        <Badge
+                            variant={product.seo?.isBestSeller ? 'default' : 'outline'}
+                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            onClick={() => onToggleVisibility('isBestSeller', !product.seo?.isBestSeller)}
+                        >
+                            Best Seller
+                        </Badge>
+                        <Badge
+                            variant={product.seo?.isTrending ? 'default' : 'outline'}
+                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            onClick={() => onToggleVisibility('isTrending', !product.seo?.isTrending)}
+                        >
+                            Trending
+                        </Badge>
+                        <Badge
+                            variant={product.seo?.isDailyEssential ? 'default' : 'outline'}
+                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            onClick={() => onToggleVisibility('isDailyEssential', !product.seo?.isDailyEssential)}
+                        >
+                            Daily Ess.
+                        </Badge>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 mt-auto pt-2">

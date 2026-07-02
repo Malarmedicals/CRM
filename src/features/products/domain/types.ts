@@ -65,6 +65,10 @@ export interface ProductSEO {
   metaTitle?: string
   metaDescription?: string
   metaKeywords?: string
+  isNewArrival?: boolean
+  isBestSeller?: boolean
+  isTrending?: boolean
+  isDailyEssential?: boolean
 }
 
 export interface StockMovement {

@@ -86,13 +86,13 @@ export const crmRepository = {
 
   // Banners
   async getBanners(): Promise<Banner[]> {
-    const { data, error } = await supabase.from('banners').select('*').order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('banners').select('*').order('createdAt', { ascending: false })
     if (error) throw error
     return data.map((doc: any) => ({
       id: doc.id,
       ...doc,
-      createdAt: new Date(doc.created_at || Date.now()),
-      updatedAt: new Date(doc.updated_at || Date.now()),
+      createdAt: new Date(doc.createdAt || Date.now()),
+      updatedAt: new Date(doc.updatedAt || Date.now()),
     }))
   },
 
@@ -102,7 +102,7 @@ export const crmRepository = {
   },
 
   async updateBanner(id: string, updates: any): Promise<void> {
-    const { error } = await supabase.from('banners').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id)
+    const { error } = await supabase.from('banners').update({ ...updates, updatedAt: new Date().toISOString() }).eq('id', id)
     if (error) throw error
   },
 

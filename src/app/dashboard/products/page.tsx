@@ -12,10 +12,14 @@ import { ProductCard } from '@/components/products/product-card'
 import { BulkImportModal } from '@/features/products/bulk-import-modal'
 import Papa from 'papaparse'
 import { useRouter } from 'next/navigation'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [visibilityFilter, setVisibilityFilter] = useState('all')
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
@@ -33,12 +37,33 @@ export default function ProductsPage() {
     const searchLower = String(searchTerm || '').toLowerCase()
     const filtered = products.filter((product) => {
       if (!product) return false
+      
       const name = String(product.name || '').toLowerCase()
       const batchNumber = String(product.batchNumber || '')
-      return name.includes(searchLower) || batchNumber.includes(searchTerm || '')
+      const matchesSearch = name.includes(searchLower) || batchNumber.includes(searchTerm || '')
+      
+      if (!matchesSearch) return false
+
+      // Status/Stock Filter
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'active' && product.status !== 'published') return false
+        if (statusFilter === 'draft' && product.status !== 'draft') return false
+        if (statusFilter === 'out_of_stock' && product.stockQuantity > 0) return false
+        if (statusFilter === 'low_stock' && (product.stockQuantity === 0 || product.stockQuantity >= (product.minStockLevel || 10))) return false
+      }
+
+      // Visibility Filter
+      if (visibilityFilter !== 'all') {
+        if (visibilityFilter === 'new_arrival' && !product.seo?.isNewArrival) return false
+        if (visibilityFilter === 'best_seller' && !product.seo?.isBestSeller) return false
+        if (visibilityFilter === 'trending' && !product.seo?.isTrending) return false
+        if (visibilityFilter === 'daily_essential' && !product.seo?.isDailyEssential) return false
+      }
+
+      return true
     })
     setFilteredProducts(filtered)
-  }, [searchTerm, products])
+  }, [searchTerm, statusFilter, visibilityFilter, products])
 
   const loadProducts = async () => {
     try {
@@ -59,6 +84,26 @@ export default function ProductsPage() {
       } catch (error) {
         console.error('Failed to delete product:', error)
       }
+    }
+  }
+
+  const handleToggleVisibility = async (productId: string, flag: 'isNewArrival' | 'isBestSeller' | 'isTrending' | 'isDailyEssential', value: boolean) => {
+    try {
+      const product = products.find(p => p.id === productId)
+      if (!product) return
+
+      const updatedSeo = {
+        ...(product.seo || {}),
+        [flag]: value
+      }
+
+      await productService.updateProduct(productId, { seo: updatedSeo })
+
+      setProducts(products.map(p => 
+        p.id === productId ? { ...p, seo: updatedSeo } : p
+      ))
+    } catch (error) {
+      console.error('Failed to update visibility flag:', error)
     }
   }
 
@@ -103,30 +148,7 @@ export default function ProductsPage() {
     link.click()
   }
 
-  const handleDownloadTemplate = () => {
-    const headers = [
-      'Product Name', 'Description', 'Category', 'Subcategory', 'Brand',
-      'MRP', 'Selling Price', 'Stock Quantity', 'Minimum Stock', 'Batch Number', 'Expiry Date',
-      'GST Rate (%)', 'HSN Code',
-      'Composition', 'Dosage Form', 'Strength', 'Indications', 'Side Effects', 'Contraindications', 'Storage Instructions',
-      'Prescription Required', 'Narcotic', 'Schedule Type',
-      'Meta Title', 'Meta Description', 'Keywords'
-    ]
-    const sampleRow = [
-      'Paracetamol 500mg', 'Used for fever and pain relief', 'Medicines', 'Fever', 'Cipla',
-      '50', '45', '100', '10', 'B2025-01', '2026-12-31',
-      '12', '3004',
-      'Paracetamol IP 500mg', 'Tablet', '500mg', 'Fever, Mild pain', 'Nausea, Rash', 'Liver disease', 'Store in a cool, dry place',
-      'No', 'No', 'OTC',
-      'Buy Paracetamol 500mg Online', 'Get fast relief from fever with Paracetamol 500mg.', 'paracetamol, fever, painkiller'
-    ]
-    const csvContent = Papa.unparse([headers, sampleRow])
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = 'product_import_template.csv'
-    link.click()
-  }
+
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -136,10 +158,6 @@ export default function ProductsPage() {
           <p className="text-muted-foreground mt-1">Manage medicines and products</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleDownloadTemplate} className="gap-2 text-muted-foreground">
-            <FileSpreadsheet className="h-4 w-4" />
-            Template
-          </Button>
           <Button variant="outline" onClick={handleExportProducts} className="gap-2">
             <Download className="h-4 w-4" />
             Export
@@ -167,14 +185,43 @@ export default function ProductsPage() {
           }} 
         />
       )}
-      <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search by name or batch number..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-        />
+      <div className="flex flex-col sm:flex-row items-center gap-4 bg-background border border-input rounded-lg p-2 shadow-sm">
+        <div className="flex items-center gap-2 flex-1 w-full px-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or batch number..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 px-0"
+          />
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[150px] border-0 bg-transparent shadow-none focus:ring-0 h-8">
+              <SelectValue placeholder="Status/Stock" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="low_stock">Low Stock</SelectItem>
+              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
+            <SelectTrigger className="w-full sm:w-[150px] border-0 bg-transparent shadow-none focus:ring-0 h-8">
+              <SelectValue placeholder="Visibility" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Visibility</SelectItem>
+              <SelectItem value="new_arrival">New Arrivals</SelectItem>
+              <SelectItem value="best_seller">Best Sellers</SelectItem>
+              <SelectItem value="trending">Trending</SelectItem>
+              <SelectItem value="daily_essential">Daily Essentials</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -184,6 +231,7 @@ export default function ProductsPage() {
             product={product}
             onEdit={() => router.push(`/dashboard/products/${product.id}/edit`)}
             onDelete={() => handleDelete(product.id)}
+            onToggleVisibility={(flag, value) => handleToggleVisibility(product.id, flag, value)}
           />
         ))}
       </div>
