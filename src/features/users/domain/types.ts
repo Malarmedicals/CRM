@@ -5,12 +5,12 @@ export interface User {
   email: string
   displayName: string
   phoneNumber?: string
-  role: 'admin' | 'manager' | 'customer'
+  role: string
   isBlocked: boolean
   createdAt: Date
   updatedAt: Date
 }
 
 export const updateUserRoleSchema = z.object({
-  role: z.enum(['admin', 'manager', 'customer']),
+  role: z.string().min(1, "Role is required"),
 })

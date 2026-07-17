@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS public.banners (
     "seoTitle" TEXT,
     "linkProductId" TEXT,
     "bannerType" TEXT,
+    "displayOrder" INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );

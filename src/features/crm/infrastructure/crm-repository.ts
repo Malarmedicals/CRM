@@ -86,28 +86,77 @@ export const crmRepository = {
 
   // Banners
   async getBanners(): Promise<Banner[]> {
-    const { data, error } = await supabase.from('banners').select('*').order('createdAt', { ascending: false })
+    const { data, error } = await supabase.from('banners').select('*').order('displayOrder', { ascending: true }).order('createdAt', { ascending: false })
     if (error) throw error
     return data.map((doc: any) => ({
       id: doc.id,
-      ...doc,
+      name: doc.name,
+      position: doc.position,
+      redirectType: doc.redirect_type,
+      redirectTarget: doc.redirect_target,
+      openIn: doc.open_in,
+      status: doc.status,
+      displayOrder: doc.displayOrder,
+      image: doc.image_url,
+      altText: doc.alt_text,
+      startDate: doc.start_date ? new Date(doc.start_date) : undefined,
+      endDate: doc.end_date ? new Date(doc.end_date) : undefined,
+      createdBy: doc.created_by,
+      updatedBy: doc.updated_by,
       createdAt: new Date(doc.createdAt || Date.now()),
       updatedAt: new Date(doc.updatedAt || Date.now()),
     }))
   },
 
   async insertBanner(bannerData: any): Promise<void> {
-    const { error } = await supabase.from('banners').insert(bannerData)
+    const payload = {
+      name: bannerData.name,
+      position: bannerData.position,
+      redirect_type: bannerData.redirectType,
+      redirect_target: bannerData.redirectTarget,
+      open_in: bannerData.openIn,
+      status: bannerData.status,
+      displayOrder: bannerData.displayOrder, // Schema has "displayOrder"
+      image_url: bannerData.image,
+      alt_text: bannerData.altText,
+      start_date: bannerData.startDate ? new Date(bannerData.startDate).toISOString() : null,
+      end_date: bannerData.endDate ? new Date(bannerData.endDate).toISOString() : null,
+      created_by: bannerData.createdBy,
+      updated_by: bannerData.updatedBy
+    }
+    const { error } = await supabase.from('banners').insert(payload)
     if (error) throw error
   },
 
   async updateBanner(id: string, updates: any): Promise<void> {
-    const { error } = await supabase.from('banners').update({ ...updates, updatedAt: new Date().toISOString() }).eq('id', id)
+    const payload: any = { updatedAt: new Date().toISOString() }
+    if (updates.name !== undefined) payload.name = updates.name
+    if (updates.position !== undefined) payload.position = updates.position
+    if (updates.redirectType !== undefined) payload.redirect_type = updates.redirectType
+    if (updates.redirectTarget !== undefined) payload.redirect_target = updates.redirectTarget
+    if (updates.openIn !== undefined) payload.open_in = updates.openIn
+    if (updates.status !== undefined) payload.status = updates.status
+    if (updates.displayOrder !== undefined) payload.displayOrder = updates.displayOrder
+    if (updates.image !== undefined) payload.image_url = updates.image
+    if (updates.altText !== undefined) payload.alt_text = updates.altText
+    if (updates.startDate !== undefined) payload.start_date = updates.startDate ? new Date(updates.startDate).toISOString() : null
+    if (updates.endDate !== undefined) payload.end_date = updates.endDate ? new Date(updates.endDate).toISOString() : null
+
+    const { error } = await supabase.from('banners').update(payload).eq('id', id)
     if (error) throw error
   },
 
   async deleteBanner(id: string): Promise<void> {
     const { error } = await supabase.from('banners').delete().eq('id', id)
     if (error) throw error
+  },
+
+  async uploadImage(file: Blob, filename: string): Promise<string> {
+    const { data, error } = await supabase.storage.from('banners').upload(filename, file, {
+      contentType: file.type || 'image/jpeg',
+    })
+    if (error) throw error
+    const { data: publicUrlData } = supabase.storage.from('banners').getPublicUrl(filename)
+    return publicUrlData.publicUrl
   },
 }

@@ -74,6 +74,10 @@ export const crmToolsService = {
     }
   },
 
+  async getChurnRiskCustomers(): Promise<string[]> {
+    return []
+  },
+
   async getCustomerLifetimeValue(userId: string): Promise<number> {
     const orders = await orderService.getOrders()
     const userOrders = orders.filter((o: any) => o.user_id === userId)
@@ -179,6 +183,16 @@ export const bannerService = {
     return crmRepository.getBanners()
   },
 
+  async getBannerById(id: string): Promise<Banner | null> {
+    try {
+      const banners = await this.getBanners();
+      return banners.find(b => b.id === id) || null;
+    } catch (error: any) {
+      logger.error('Failed to get banner', error)
+      return null;
+    }
+  },
+
   async addBanner(data: any): Promise<void> {
     try {
       await crmRepository.insertBanner(data)
@@ -208,4 +222,13 @@ export const bannerService = {
       throw new Error(`Failed to delete banner: ${error.message}`)
     }
   },
+
+  async uploadImage(file: Blob, filename: string): Promise<string> {
+    try {
+      return await crmRepository.uploadImage(file, filename)
+    } catch (error: any) {
+      logger.error('Failed to upload image', error)
+      throw new Error(`Failed to upload image: ${error.message}`)
+    }
+  }
 }

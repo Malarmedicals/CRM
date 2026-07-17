@@ -7,22 +7,26 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { AlertCircle, MessageSquare, Send, Phone } from 'lucide-react'
+import { AlertCircle, MessageSquare, Send, Search, MoreHorizontal, Eye, Copy, Play, Trash2, Calendar, Phone } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
 
 export default function WhatsAppNotifications() {
   const [templates, setTemplates] = useState<WhatsAppTemplate[]>([])
   const [showForm, setShowForm] = useState(false)
   const [selectedSegment, setSelectedSegment] = useState<'all' | 'regular' | 'prescription' | 'highValue'>('all')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('1')
   const [loading, setLoading] = useState(false)
   const [sendingTemplateId, setSendingTemplateId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [message, setMessage] = useState('')
   const [showSingleMessageDialog, setShowSingleMessageDialog] = useState(false)
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('1')
 
   useEffect(() => {
     loadTemplates()
@@ -33,8 +37,7 @@ export default function WhatsAppNotifications() {
       const data = await whatsappService.getWhatsAppTemplates()
       setTemplates(data)
     } catch (err: any) {
-      // If no templates exist, that's okay - we'll use sample templates
-      console.log('No WhatsApp templates found, using sample templates')
+      // Ignore errors for sample templates
     }
   }
 
@@ -51,8 +54,6 @@ export default function WhatsAppNotifications() {
 
       const targetSegment = segment || selectedSegment
 
-      console.log(`Sending WhatsApp template "${template.name}" (ID: ${templateId}) to segment: ${targetSegment}`)
-
       await whatsappService.sendSegmentedMessage(
         targetSegment,
         template.message,
@@ -62,14 +63,10 @@ export default function WhatsAppNotifications() {
       alert(`"${template.name}" WhatsApp campaign sent successfully to ${targetSegment} segment!`)
       setShowForm(false)
     } catch (err: any) {
-      console.error('Error sending WhatsApp campaign:', err)
       let errorMsg = err.message || 'Failed to send WhatsApp campaign'
-
-      // Provide helpful message for allowed list error
       if (errorMsg.includes('131030') || errorMsg.includes('not in allowed list')) {
-        errorMsg = 'Some recipient phone numbers are not in the allowed list. Please add them to your Meta Business Suite allowed list. Go to Meta Business Suite → WhatsApp → API Setup → Manage phone number list.'
+        errorMsg = 'Some recipient phone numbers are not in the allowed list. Please add them to your Meta Business Suite allowed list.'
       }
-
       setError(errorMsg)
       alert(`Error: ${errorMsg}`)
     } finally {
@@ -83,10 +80,8 @@ export default function WhatsAppNotifications() {
       setError('Please enter both phone number and message')
       return
     }
-
     setLoading(true)
     setError('')
-
     try {
       await whatsappService.sendMessage(phoneNumber, message)
       alert('WhatsApp message sent successfully!')
@@ -94,14 +89,10 @@ export default function WhatsAppNotifications() {
       setPhoneNumber('')
       setMessage('')
     } catch (err: any) {
-      console.error('Error sending WhatsApp:', err)
       let errorMsg = err.message || 'Failed to send WhatsApp message'
-
-      // Provide helpful message for allowed list error
       if (errorMsg.includes('131030') || errorMsg.includes('not in allowed list')) {
-        errorMsg = 'Recipient phone number not in allowed list. Please add the number to your Meta Business Suite allowed list. Go to Meta Business Suite → WhatsApp → API Setup → Manage phone number list.'
+        errorMsg = 'Recipient phone number not in allowed list. Please add the number to your Meta Business Suite allowed list.'
       }
-
       setError(errorMsg)
       alert(`Error: ${errorMsg}`)
     } finally {
@@ -115,41 +106,66 @@ export default function WhatsAppNotifications() {
       name: 'Order Confirmation',
       message: 'Hello! Your order #{{orderNumber}} has been confirmed. We will notify you once it\'s ready for pickup. Thank you for choosing Malar Medicals!',
       description: 'Send order confirmation to customers',
+      status: 'Automated',
+      lastSent: '2026-07-17T09:12:00Z',
+      audience: 'Purchasers',
     },
     {
       id: '2',
       name: 'Prescription Reminder',
       message: 'Hi {{customerName}}! This is a reminder that your prescription for {{medicineName}} is due for refill. Visit us or call to renew. - Malar Medicals',
       description: 'Remind customers to refill prescriptions',
+      status: 'Active',
+      lastSent: '2026-07-16T14:30:00Z',
+      audience: 'Prescription Customers',
     },
     {
       id: '3',
       name: 'Promotional Offer',
       message: '🎉 Special Offer! Get 20% off on all medicines this week. Use code SAVE20. Visit us today! - Malar Medicals',
       description: 'Send promotional offers to customers',
+      status: 'Draft',
+      lastSent: null,
+      audience: 'All Customers',
     },
   ]
 
+  const filteredTemplates = sampleTemplates.filter(t => 
+    (t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     t.message.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (statusFilter === 'all' || t.status.toLowerCase() === statusFilter.toLowerCase())
+  )
+
+  const getStatusBadge = (status: string) => {
+    switch(status) {
+      case 'Active': return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">Active</Badge>
+      case 'Automated': return <Badge className="bg-blue-50 text-blue-700 border-blue-200">Automated</Badge>
+      case 'Draft': return <Badge className="bg-slate-100 text-slate-700 border-slate-200">Draft</Badge>
+      default: return <Badge className="bg-slate-100 text-slate-700 border-slate-200">{status}</Badge>
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">WhatsApp Notifications</h1>
-          <p className="text-muted-foreground mt-1">Send WhatsApp messages to customers and segments</p>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">WhatsApp Campaigns</h2>
+          <p className="text-slate-500 mt-1 text-sm">Design, schedule, and track your WhatsApp marketing communications.</p>
         </div>
+        
         <div className="flex gap-2">
           <Dialog open={showSingleMessageDialog} onOpenChange={setShowSingleMessageDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Send Single Message
+              <Button variant="outline" className="border-slate-200 bg-white gap-2">
+                <Phone className="h-4 w-4" />
+                Single Message
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Send WhatsApp Message</DialogTitle>
                 <DialogDescription>
-                  Send a WhatsApp message to a single phone number
+                  Send a direct WhatsApp message to a single phone number.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -162,12 +178,7 @@ export default function WhatsAppNotifications() {
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     disabled={loading}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Use international format: +919876543210 (India) or +1234567890
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    India format: +91 followed by 10 digits (e.g., +919876543210)
-                  </p>
+                  <p className="text-xs text-muted-foreground">Use international format (e.g. +91 for India)</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="message">Message</Label>
@@ -177,23 +188,18 @@ export default function WhatsAppNotifications() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     disabled={loading}
-                    rows={5}
+                    rows={4}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {message.length} characters
-                  </p>
                 </div>
                 {error && (
-                  <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive rounded-lg">
-                    <AlertCircle className="h-4 w-4 text-destructive" />
-                    <p className="text-sm text-destructive">{error}</p>
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-                <div className="flex gap-2 justify-end">
-                  <Button variant="outline" onClick={() => setShowSingleMessageDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSendSingleMessage} disabled={loading} className="gap-2">
+                <div className="flex gap-2 justify-end pt-2">
+                  <Button variant="outline" onClick={() => setShowSingleMessageDialog(false)}>Cancel</Button>
+                  <Button onClick={handleSendSingleMessage} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
                     <Send className="h-4 w-4" />
                     {loading ? 'Sending...' : 'Send Message'}
                   </Button>
@@ -201,124 +207,185 @@ export default function WhatsAppNotifications() {
               </div>
             </DialogContent>
           </Dialog>
-          <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-            <MessageSquare className="h-4 w-4" />
-            New Campaign
-          </Button>
-        </div>
-      </div>
 
-      {error && (
-        <div className="flex items-center gap-2 p-4 bg-destructive/10 border border-destructive rounded-lg">
-          <AlertCircle className="h-4 w-4 text-destructive" />
-          <p className="text-sm text-destructive">{error}</p>
-        </div>
-      )}
-
-      {showForm && (
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Send Campaign</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Select Template</label>
-              <Select defaultValue="1" onValueChange={(value) => setSelectedTemplateId(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a template" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sampleTemplates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Target Segment</label>
-              <Select value={selectedSegment} onValueChange={(value: any) => setSelectedSegment(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Customers</SelectItem>
-                  <SelectItem value="regular">Regular Customers</SelectItem>
-                  <SelectItem value="prescription">Prescription Customers</SelectItem>
-                  <SelectItem value="highValue">High-Value Customers</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowForm(false)}>
-                Cancel
+          <Dialog open={showForm} onOpenChange={setShowForm}>
+            <DialogTrigger asChild>
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                <MessageSquare className="h-4 w-4" />
+                New WhatsApp Campaign
               </Button>
-              <Button
-                onClick={() => handleSendCampaign(selectedTemplateId, selectedSegment)}
-                disabled={loading}
-                className="gap-2"
-              >
-                <Send className="h-4 w-4" />
-                {loading ? 'Sending...' : 'Send Campaign'}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-        {sampleTemplates.map((template) => {
-          const isSending = sendingTemplateId === template.id
-          const isDisabled = loading && !isSending
-
-          return (
-            <Card key={template.id} className="p-4 hover:shadow-lg transition-shadow">
-              <div className="space-y-3">
-                <div>
-                  <h3 className="font-semibold text-lg">{template.name}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{template.message}</p>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Create New Campaign</DialogTitle>
+                <DialogDescription>
+                  Select a template and target audience to launch your campaign.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="template">Select Template</Label>
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger id="template">
+                      <SelectValue placeholder="Select a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sampleTemplates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <p className="text-sm text-muted-foreground">{template.description}</p>
-
                 <div className="space-y-2">
-                  <div>
-                    <label className="block text-xs font-medium mb-1 text-muted-foreground">Target Segment</label>
-                    <Select
-                      value={selectedSegment}
-                      onValueChange={(value: any) => setSelectedSegment(value)}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Customers</SelectItem>
-                        <SelectItem value="regular">Regular Customers</SelectItem>
-                        <SelectItem value="prescription">Prescription Customers</SelectItem>
-                        <SelectItem value="highValue">High-Value Customers</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Label htmlFor="segment">Target Audience</Label>
+                  <Select value={selectedSegment} onValueChange={(val: any) => setSelectedSegment(val)}>
+                    <SelectTrigger id="segment">
+                      <SelectValue placeholder="Select audience" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Customers</SelectItem>
+                      <SelectItem value="regular">Regular Customers</SelectItem>
+                      <SelectItem value="prescription">Prescription Customers</SelectItem>
+                      <SelectItem value="highValue">High-Value Customers</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={() => handleSendCampaign(template.id, selectedSegment)}
-                    disabled={isDisabled}
+                {error && (
+                  <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+                  <Button 
+                    onClick={() => handleSendCampaign(selectedTemplateId, selectedSegment)}
+                    disabled={loading}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
                   >
-                    <Send className="h-3 w-3" />
-                    {isSending ? 'Sending...' : 'Send This Template'}
+                    <Send className="h-4 w-4" />
+                    {loading ? 'Sending...' : 'Launch Campaign'}
                   </Button>
                 </div>
               </div>
-            </Card>
-          )
-        })}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Toolbar */}
+      <Card className="p-4 shadow-sm border-slate-200 bg-white">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex-1 relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search campaigns by name or message content..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-slate-50 border-slate-200"
+            />
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px] bg-slate-50 border-slate-200">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="automated">Automated</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      {/* Data Table */}
+      <Card className="overflow-hidden shadow-sm border-slate-200 bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
+              <tr>
+                <th className="px-4 py-3 font-medium">Campaign Name</th>
+                <th className="px-4 py-3 font-medium">Message Body</th>
+                <th className="px-4 py-3 font-medium">Audience</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Last Sent</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredTemplates.map((template) => (
+                <tr key={template.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-4 py-4 align-top">
+                    <div className="font-medium text-slate-900">{template.name}</div>
+                    <div className="text-xs text-slate-500 mt-1">ID: {template.id}</div>
+                  </td>
+                  <td className="px-4 py-4 align-top max-w-[250px]">
+                    <div className="text-slate-700 line-clamp-2" title={template.message}>{template.message}</div>
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    <div className="text-slate-600 text-sm flex items-center gap-1.5">
+                      <MessageSquare className="h-3 w-3 text-slate-400" />
+                      {template.audience}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {getStatusBadge(template.status)}
+                  </td>
+                  <td className="px-4 py-4 align-top">
+                    {template.lastSent ? (
+                      <div className="text-slate-600 text-sm flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3 text-slate-400" />
+                        {new Date(template.lastSent).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400 text-sm">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 align-top text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuLabel>Campaign Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem><Eye className="h-4 w-4 mr-2" /> View Details</DropdownMenuItem>
+                        <DropdownMenuItem><Copy className="h-4 w-4 mr-2" /> Duplicate</DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-emerald-600 font-medium"
+                          onClick={() => {
+                            setSelectedTemplateId(template.id)
+                            setShowForm(true)
+                          }}
+                        >
+                          <Play className="h-4 w-4 mr-2" /> Launch
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600"><Trash2 className="h-4 w-4 mr-2" /> Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                </tr>
+              ))}
+              {filteredTemplates.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                    No campaigns found matching your criteria.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   )
 }
-

@@ -14,8 +14,6 @@ export function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [displayName, setDisplayName] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,11 +21,7 @@ export function LoginForm() {
     setLoading(true)
 
     try {
-      if (isSignUp) {
-        await authService.signUp(email, password, displayName)
-      } else {
-        await authService.signIn(email, password)
-      }
+      await authService.signIn(email, password)
       router.push('/dashboard')
     } catch (err: any) {
       setError(err.message)
@@ -45,7 +39,7 @@ export function LoginForm() {
               Medicine CRM
             </h1>
             <p className="text-muted-foreground">
-              {isSignUp ? 'Create your account' : 'Sign in to your account'}
+              Sign in to your account
             </p>
           </div>
 
@@ -57,19 +51,6 @@ export function LoginForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div>
-                <label className="block text-sm font-medium mb-2">Display Name</label>
-                <Input
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
               <Input
@@ -97,17 +78,9 @@ export function LoginForm() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
+              {loading ? 'Loading...' : 'Sign In'}
             </Button>
           </form>
-
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full text-sm text-primary hover:underline"
-          >
-            {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-          </button>
         </div>
       </Card>
     </div>

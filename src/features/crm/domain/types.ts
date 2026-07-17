@@ -48,20 +48,19 @@ export interface Email {
 
 export interface Banner {
   id: string
-  title: string
+  name: string
+  position: string
+  redirectType: string
+  redirectTarget?: string
+  openIn: string
+  status: string
+  displayOrder: number
   image: string
-  mobileImage?: string
-  link: string
-  seoDescription: string
-  isActive: boolean
-  category?: string
-  categoryTag?: string
-  showCategoryTag?: boolean
-  priceDisplay?: string
-  description?: string
-  seoTitle?: string
-  linkProductId?: string
-  bannerType?: 'Single Banner' | 'Grid' | 'Slider'
+  altText?: string
+  startDate?: Date
+  endDate?: Date
+  createdBy?: string
+  updatedBy?: string
   createdAt: Date
   updatedAt: Date
 }

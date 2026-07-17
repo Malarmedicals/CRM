@@ -38,7 +38,7 @@ export const userService = {
     }
   },
 
-  async updateUserRole(userId: string, role: 'admin' | 'manager' | 'customer'): Promise<void> {
+  async updateUserRole(userId: string, role: string): Promise<void> {
     try {
       await userRepository.updateRole(userId, role)
       logger.info('User role updated', { userId, role })

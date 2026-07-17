@@ -23,6 +23,22 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   useOrderListener();
   usePrescriptionListener();
 
+  // Prevent double scrollbars by locking body scroll on dashboard routes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (isDashboardRoute) {
+        document.body.style.overflow = 'hidden'
+      } else {
+        document.body.style.overflow = 'unset'
+      }
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        document.body.style.overflow = 'unset'
+      }
+    }
+  }, [isDashboardRoute])
+
   useEffect(() => {
     if (isDashboardRoute) {
       supabase.auth.getSession().then(({ data: { session } }) => {

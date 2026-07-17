@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS public.crm_users (
     uid TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     phone_number TEXT,
+    alt_phone TEXT,
     display_name TEXT,
+    dob TEXT,
+    gender TEXT,
     role TEXT DEFAULT 'customer',
     is_active BOOLEAN DEFAULT true,
     customer_value TEXT,
@@ -203,10 +206,19 @@ CREATE TABLE IF NOT EXISTS public.events (
 -- 16. banners
 CREATE TABLE IF NOT EXISTS public.banners (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title TEXT,
+    name TEXT,
+    position TEXT,
+    redirect_type TEXT,
+    redirect_target TEXT,
+    open_in TEXT,
+    status TEXT DEFAULT 'Draft',
+    alt_text TEXT,
+    start_date TIMESTAMP WITH TIME ZONE,
+    end_date TIMESTAMP WITH TIME ZONE,
+    created_by TEXT,
+    updated_by TEXT,
     image_url TEXT,
-    link TEXT,
-    is_active BOOLEAN DEFAULT true,
+    "displayOrder" INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );

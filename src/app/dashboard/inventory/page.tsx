@@ -12,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Package, AlertTriangle, TrendingDown, TrendingUp, RefreshCw, Plus, Minus, Edit, History, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
+import { usePermissions } from '@/components/auth/permission-provider'
 
 export default function InventoryPage() {
+    const { hasPermission } = usePermissions()
     const [products, setProducts] = useState<Product[]>([])
     const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
     const [searchTerm, setSearchTerm] = useState('')
@@ -153,10 +155,10 @@ export default function InventoryPage() {
     }
 
     const getStockStatusColor = (product: Product) => {
-        if (product.stockQuantity === 0) return 'text-red-600 bg-red-50'
+        if (product.stockQuantity === 0) return 'text-red-700 bg-red-50'
         const minLevel = product.minStockLevel || 10
-        if (product.stockQuantity <= minLevel) return 'text-yellow-600 bg-yellow-50'
-        return 'text-green-600 bg-green-50'
+        if (product.stockQuantity <= minLevel) return 'text-amber-700 bg-amber-50'
+        return 'text-emerald-700 bg-emerald-50'
     }
 
     const getStockStatusLabel = (product: Product) => {
@@ -172,218 +174,235 @@ export default function InventoryPage() {
         const daysUntilExpiry = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 
         if (daysUntilExpiry < 0) return { label: 'Expired', color: 'text-red-600' }
-        if (daysUntilExpiry <= 30) return { label: `${daysUntilExpiry} days`, color: 'text-red-600' }
-        if (daysUntilExpiry <= 60) return { label: `${daysUntilExpiry} days`, color: 'text-yellow-600' }
-        return { label: `${daysUntilExpiry} days`, color: 'text-green-600' }
+        if (daysUntilExpiry <= 30) return { label: `Expires in ${daysUntilExpiry} days`, color: 'text-red-600' }
+        if (daysUntilExpiry <= 90) return { label: `Expires in ${daysUntilExpiry} days`, color: 'text-amber-600' }
+        
+        const months = Math.floor(daysUntilExpiry / 30)
+        return { label: `~${months} months left`, color: 'text-slate-600' }
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="p-6 md:p-10 max-w-[1600px] mx-auto space-y-6 animate-fade-in">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2 tracking-tight">
-                        📦 Inventory Management
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                        Inventory Management
                     </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Track and manage your medical inventory
+                    <p className="text-slate-500 mt-1">
+                        Track and manage your medical inventory.
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={loadInventory} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <Card className="p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Package className="h-4 w-4 text-blue-600" />
-                        <p className="text-xs text-muted-foreground">Total Products</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+                <Card className="p-5 shadow-sm border-slate-200 bg-white hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center">
+                            <Package className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <p className="text-sm font-medium text-slate-600">Products</p>
                     </div>
-                    <p className="text-2xl font-bold">{stats.totalProducts}</p>
+                    <p className="text-2xl font-bold text-slate-900">{stats.totalProducts}</p>
                 </Card>
 
-                <Card className="p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                        <p className="text-xs text-muted-foreground">Total Items</p>
+                <Card className="p-5 shadow-sm border-slate-200 bg-white hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center">
+                            <TrendingUp className="h-4 w-4 text-emerald-600" />
+                        </div>
+                        <p className="text-sm font-medium text-slate-600">Inventory Units</p>
                     </div>
-                    <p className="text-2xl font-bold">{stats.totalItems.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-slate-900">{stats.totalItems.toLocaleString()}</p>
                 </Card>
 
-                <Card className="p-4 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">💰</span>
-                        <p className="text-xs text-muted-foreground">Total Value</p>
+                <Card className="p-5 shadow-sm border-slate-200 bg-white hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center">
+                            <span className="text-lg">💰</span>
+                        </div>
+                        <p className="text-sm font-medium text-slate-600">Value</p>
                     </div>
-                    <p className="text-2xl font-bold">₹{stats.totalValue.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-slate-900">₹{stats.totalValue.toLocaleString()}</p>
                 </Card>
 
-                <Card className="p-4 border-yellow-200 bg-yellow-50 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                        <p className="text-xs text-yellow-800 font-medium">Low Stock</p>
+                <Card className="p-5 shadow-sm border-amber-200 bg-amber-50 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-amber-100 flex items-center justify-center">
+                            <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        </div>
+                        <p className="text-sm font-medium text-amber-800">Low Stock</p>
                     </div>
-                    <p className="text-2xl font-bold text-yellow-800">{stats.lowStockCount}</p>
+                    <p className="text-2xl font-bold text-amber-800">{stats.lowStockCount}</p>
                 </Card>
 
-                <Card className="p-4 border-red-200 bg-red-50 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <TrendingDown className="h-4 w-4 text-red-600" />
-                        <p className="text-xs text-red-800 font-medium">Out of Stock</p>
+                <Card className="p-5 shadow-sm border-red-200 bg-red-50 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                            <TrendingDown className="h-4 w-4 text-red-600" />
+                        </div>
+                        <p className="text-sm font-medium text-red-800">Out of Stock</p>
                     </div>
                     <p className="text-2xl font-bold text-red-800">{stats.outOfStockCount}</p>
                 </Card>
 
-                <Card className="p-4 border-orange-200 bg-orange-50 shadow-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Calendar className="h-4 w-4 text-orange-600" />
-                        <p className="text-xs text-orange-800 font-medium">Expiring Soon</p>
+                <Card className="p-5 shadow-sm border-orange-200 bg-orange-50 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
+                            <Calendar className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <p className="text-sm font-medium text-orange-800">Expiring Soon</p>
                     </div>
                     <p className="text-2xl font-bold text-orange-800">{stats.expiringSoonCount}</p>
                 </Card>
             </div>
 
             {/* Search and Filters */}
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 flex items-center gap-2 bg-background border border-input rounded-lg px-4 shadow-sm">
-                    <Search className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-white border border-slate-200 rounded-lg p-2 shadow-sm">
+                <div className="flex items-center gap-2 flex-1 w-full px-2">
+                    <Search className="h-4 w-4 text-slate-400" />
                     <Input
-                        placeholder="Search products by name, category, or batch..."
+                        placeholder="Search by product name, category, or batch..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 px-0 text-slate-900 placeholder:text-slate-400"
                     />
                 </div>
 
-                <div className="flex gap-2 flex-wrap">
-                    <Button
-                        variant={filterType === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setFilterType('all')}
-                    >
-                        All Products
-                    </Button>
-                    <Button
-                        variant={filterType === 'low-stock' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setFilterType('low-stock')}
-                    >
-                        Low Stock
-                    </Button>
-                    <Button
-                        variant={filterType === 'out-of-stock' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setFilterType('out-of-stock')}
-                    >
-                        Out of Stock
-                    </Button>
-                    <Button
-                        variant={filterType === 'expiring' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setFilterType('expiring')}
-                    >
-                        Expiring Soon
-                    </Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <Select value={filterType} onValueChange={setFilterType}>
+                        <SelectTrigger className="w-full sm:w-[180px] border-0 bg-transparent shadow-none focus:ring-0 h-8 text-slate-700 font-medium">
+                            <SelectValue placeholder="Stock Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Inventory</SelectItem>
+                            <SelectItem value="low-stock">Low Stock</SelectItem>
+                            <SelectItem value="out-of-stock">Out of Stock</SelectItem>
+                            <SelectItem value="expiring">Expiring Soon</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
             {/* Products List - Desktop Table & Mobile Cards */}
             <div className="space-y-4">
                 {/* Desktop View */}
-                <Card className="hidden md:block overflow-hidden shadow-sm">
+                <Card className="hidden md:block overflow-hidden shadow-sm border-slate-200 bg-white">
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-muted/50 border-b">
-                                <tr className="text-left text-xs font-semibold uppercase">
-                                    <th className="p-4 whitespace-nowrap">Product</th>
-                                    <th className="p-4 whitespace-nowrap">Category</th>
-                                    <th className="p-4 whitespace-nowrap">Batch</th>
-                                    <th className="p-4 whitespace-nowrap">Stock</th>
-                                    <th className="p-4 whitespace-nowrap">Status</th>
-                                    <th className="p-4 whitespace-nowrap">Expiry</th>
-                                    <th className="p-4 whitespace-nowrap">Price</th>
-                                    <th className="p-4 whitespace-nowrap">Actions</th>
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    <th className="px-6 py-4 whitespace-nowrap">Product</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Category</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Stock</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                                    <th className="px-6 py-4 whitespace-nowrap">Expiry</th>
+                                    <th className="px-6 py-4 whitespace-nowrap text-right">Price</th>
+                                    <th className="px-6 py-4 whitespace-nowrap text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {filteredProducts.map((product, index) => {
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredProducts.map((product) => {
                                     const expiryStatus = product.expiryDate ? getExpiryStatus(product.expiryDate) : null
 
                                     return (
                                         <tr
                                             key={product.id}
-                                            className={`border-b hover:bg-muted/30 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/10'}`}
+                                            className="hover:bg-slate-50/80 transition-colors bg-white group"
                                         >
-                                            <td className="p-4">
-                                                <div>
-                                                    <p className="font-medium text-sm">{product.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{product.brandName || 'N/A'}</p>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-4">
+                                                    {product.primaryImage ? (
+                                                        <div className="h-10 w-10 shrink-0 rounded-md overflow-hidden bg-slate-100 border border-slate-200">
+                                                            <img src={product.primaryImage} alt={product.name} className="h-full w-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="h-10 w-10 shrink-0 rounded-md bg-slate-50 flex items-center justify-center border border-slate-200">
+                                                            <Package className="h-5 w-5 text-slate-300" />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <p className="font-medium text-sm text-slate-900 leading-none">{product.name}</p>
+                                                        <div className="flex items-center gap-2 mt-1.5">
+                                                            <span className="text-xs text-slate-500">{product.brandName || 'Unknown Brand'}</span>
+                                                            {product.batchNumber && (
+                                                                <>
+                                                                    <span className="text-xs text-slate-300">•</span>
+                                                                    <span className="text-xs text-slate-500 font-mono" title="Batch/SKU">{product.batchNumber}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </td>
 
-                                            <td className="p-4">
-                                                <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                                            <td className="px-6 py-4">
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 font-normal">
+                                                    {product.category || 'Uncategorized'}
+                                                </Badge>
                                             </td>
 
-                                            <td className="p-4">
-                                                <p className="text-xs font-mono">{product.batchNumber || 'N/A'}</p>
-                                            </td>
-
-                                            <td className="p-4">
-                                                <div>
-                                                    <p className="font-semibold text-sm">{product.stockQuantity}</p>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-col">
+                                                    <span className={`font-semibold text-sm ${product.stockQuantity === 0 ? 'text-red-600' : product.minStockLevel && product.stockQuantity <= product.minStockLevel ? 'text-amber-600' : 'text-slate-900'}`}>
+                                                        {product.stockQuantity} <span className="font-normal text-xs text-slate-500">Units</span>
+                                                    </span>
                                                     {product.minStockLevel && (
-                                                        <p className="text-xs text-muted-foreground">Min: {product.minStockLevel}</p>
+                                                        <span className="text-[11px] text-slate-400 mt-0.5">Min: {product.minStockLevel}</span>
                                                     )}
                                                 </div>
                                             </td>
 
-                                            <td className="p-4">
-                                                <Badge className={`${getStockStatusColor(product)} border text-xs`}>
+                                            <td className="px-6 py-4">
+                                                <Badge variant="outline" className={`${getStockStatusColor(product)} font-medium border-0 px-2 py-1`}>
                                                     {getStockStatusLabel(product)}
                                                 </Badge>
                                             </td>
 
-                                            <td className="p-4">
+                                            <td className="px-6 py-4">
                                                 {expiryStatus ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="h-3 w-3" />
-                                                        <span className={`text-xs font-medium ${expiryStatus.color}`}>
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-sm font-medium ${expiryStatus.color}`}>
                                                             {expiryStatus.label}
+                                                        </span>
+                                                        <span className="text-[11px] text-slate-400 mt-0.5">
+                                                            {new Date(product.expiryDate!).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-muted-foreground">N/A</span>
+                                                    <span className="text-sm text-slate-400">Not tracked</span>
                                                 )}
                                             </td>
 
-                                            <td className="p-4">
-                                                <p className="font-semibold text-sm">₹{product.price}</p>
+                                            <td className="px-6 py-4 text-right">
+                                                <span className="font-medium text-sm text-slate-900">₹{product.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </td>
 
-                                            <td className="p-4">
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="gap-1 text-xs h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                        onClick={() => handleAdjustStock(product)}
-                                                    >
-                                                        <Edit className="h-3 w-3" />
-                                                        Adjust
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="gap-1 text-xs h-7 px-2"
-                                                        onClick={() => handleViewHistory(product)}
-                                                    >
-                                                        <History className="h-3 w-3" />
-                                                        History
-                                                    </Button>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {hasPermission('inventory.adjust_stock') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                            onClick={() => handleAdjustStock(product)}
+                                                            title="Adjust Stock"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                    {hasPermission('inventory.view_history') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-slate-900 hover:bg-slate-100"
+                                                            onClick={() => handleViewHistory(product)}
+                                                            title="View History"
+                                                        >
+                                                            <History className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -399,71 +418,89 @@ export default function InventoryPage() {
                     {filteredProducts.map((product) => {
                         const expiryStatus = product.expiryDate ? getExpiryStatus(product.expiryDate) : null
                         return (
-                            <Card key={product.id} className="p-4">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 className="font-semibold text-base">{product.name}</h3>
-                                        <p className="text-sm text-muted-foreground">{product.brandName || 'N/A'}</p>
+                            <Card key={product.id} className="p-5 border-slate-200 bg-white shadow-sm">
+                                <div className="flex gap-4 mb-4">
+                                    {product.primaryImage ? (
+                                        <div className="h-16 w-16 shrink-0 rounded-md overflow-hidden bg-slate-100 border border-slate-200">
+                                            <img src={product.primaryImage} alt={product.name} className="h-full w-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        <div className="h-16 w-16 shrink-0 rounded-md bg-slate-50 flex items-center justify-center border border-slate-200">
+                                            <Package className="h-6 w-6 text-slate-300" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-medium text-base text-slate-900 leading-tight mb-1">{product.name}</h3>
+                                                <p className="text-sm text-slate-500">{product.brandName || 'Unknown Brand'}</p>
+                                            </div>
+                                            <Badge variant="outline" className={`${getStockStatusColor(product)} font-medium border-0 px-2 py-0.5 whitespace-nowrap ml-2 text-[10px]`}>
+                                                {getStockStatusLabel(product)}
+                                            </Badge>
+                                        </div>
                                     </div>
-                                    <Badge className={`${getStockStatusColor(product)} border text-xs`}>
-                                        {getStockStatusLabel(product)}
-                                    </Badge>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+                                <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mb-4 bg-slate-50 rounded-lg p-3 border border-slate-100">
                                     <div>
-                                        <p className="text-muted-foreground text-xs">Category</p>
-                                        <Badge variant="outline" className="mt-1">{product.category}</Badge>
+                                        <p className="text-slate-500 text-xs mb-1">Category</p>
+                                        <span className="font-medium text-slate-900">{product.category || 'Uncategorized'}</span>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground text-xs">Stock</p>
+                                        <p className="text-slate-500 text-xs mb-1">Stock</p>
                                         <div className="flex items-center gap-2">
-                                            <p className="font-medium">{product.stockQuantity} units</p>
-                                            {product.minStockLevel && product.stockQuantity <= product.minStockLevel && (
-                                                <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                                            )}
+                                            <span className={`font-semibold ${product.stockQuantity === 0 ? 'text-red-600' : product.minStockLevel && product.stockQuantity <= product.minStockLevel ? 'text-amber-600' : 'text-slate-900'}`}>
+                                                {product.stockQuantity} <span className="font-normal text-xs text-slate-500">Units</span>
+                                            </span>
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground text-xs">Price</p>
-                                        <p className="font-medium">₹{product.price}</p>
+                                        <p className="text-slate-500 text-xs mb-1">Price</p>
+                                        <span className="font-medium text-slate-900">₹{product.price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                     <div>
-                                        <p className="text-muted-foreground text-xs">Batch</p>
-                                        <p className="font-mono">{product.batchNumber || '-'}</p>
+                                        <p className="text-slate-500 text-xs mb-1">Batch / SKU</p>
+                                        <span className="font-mono text-slate-700">{product.batchNumber || '-'}</span>
                                     </div>
                                     {expiryStatus && (
-                                        <div className="col-span-2">
-                                            <p className="text-muted-foreground text-xs">Expiry</p>
-                                            <div className="flex items-center gap-1 mt-1">
-                                                <Calendar className="h-3 w-3" />
-                                                <span className={`font-medium ${expiryStatus.color}`}>
-                                                    {expiryStatus.label}
-                                                </span>
+                                        <div className="col-span-2 pt-2 border-t border-slate-200 mt-1">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-slate-500 text-xs">Expiry</p>
+                                                <div className="flex items-center gap-1.5">
+                                                    <Calendar className={`h-3 w-3 ${expiryStatus.color}`} />
+                                                    <span className={`text-xs font-medium ${expiryStatus.color}`}>
+                                                        {expiryStatus.label}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="flex gap-2 border-t pt-3">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 h-9"
-                                        onClick={() => handleAdjustStock(product)}
-                                    >
-                                        <Edit className="h-4 w-4 mr-2" />
-                                        Adjust
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="flex-1 h-9"
-                                        onClick={() => handleViewHistory(product)}
-                                    >
-                                        <History className="h-4 w-4 mr-2" />
-                                        History
-                                    </Button>
+                                <div className="flex gap-2">
+                                    {hasPermission('inventory.adjust_stock') && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 h-9 text-blue-600 border-blue-200 hover:bg-blue-50 bg-white"
+                                            onClick={() => handleAdjustStock(product)}
+                                        >
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Adjust
+                                        </Button>
+                                    )}
+                                    {hasPermission('inventory.view_history') && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 h-9 text-slate-700 border-slate-200 hover:bg-slate-50 bg-white"
+                                            onClick={() => handleViewHistory(product)}
+                                        >
+                                            <History className="h-4 w-4 mr-2" />
+                                            History
+                                        </Button>
+                                    )}
                                 </div>
                             </Card>
                         )
@@ -472,8 +509,14 @@ export default function InventoryPage() {
             </div>
 
             {filteredProducts.length === 0 && !loading && (
-                <Card className="p-8 text-center text-muted-foreground">
-                    No products found
+                <Card className="p-12 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-center shadow-none">
+                    <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                        <Package className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1">No products found</h3>
+                    <p className="text-sm text-slate-500 max-w-sm mx-auto">
+                        Try adjusting your search or filters to find what you're looking for.
+                    </p>
                 </Card>
             )}
 

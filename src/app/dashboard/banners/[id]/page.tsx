@@ -46,10 +46,10 @@ export default function EditBannerPage({ params }: { params: Promise<{ id: strin
     if (!banner) return null
 
     return (
-        <div className="max-w-5xl mx-auto">
+        <div className="p-6 md:p-10 max-w-[1600px] mx-auto space-y-8 animate-fade-in">
             <div className="mb-6">
-                <h1 className="text-3xl font-bold">Edit Banner</h1>
-                <p className="text-muted-foreground mt-1">Update banner details</p>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Edit Banner</h1>
+                <p className="text-slate-500 mt-1">Update banner details</p>
             </div>
 
             <BannerForm

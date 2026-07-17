@@ -1,7 +1,7 @@
 // Auth domain types and Zod validation schemas
 import { z } from 'zod'
 
-export type UserRole = 'admin' | 'manager' | 'user' | 'customer'
+export type UserRole = string
 
 export interface User {
   id: string

@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Search, RefreshCw, Calendar, User, Eye, CheckCircle, Clock, XCircle, FileText } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Search, RefreshCw, Calendar, User, Eye, CheckCircle, Clock, XCircle, FileText, Download, MoreHorizontal, FilePlus, RefreshCcw } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function PrescriptionsPage() {
@@ -58,22 +60,15 @@ export default function PrescriptionsPage() {
         }
     }
 
-    const getStatusBadge = (status: Prescription['status']) => {
-        const variants: Record<string, { label: string; className: string; icon: any }> = {
-            pending: { label: 'Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-300', icon: Clock },
-            verifying: { label: 'In Review', className: 'bg-blue-100 text-blue-800 border-blue-300', icon: FileText },
-            approved: { label: 'Approved', className: 'bg-green-100 text-green-800 border-green-300', icon: CheckCircle },
-            rejected: { label: 'Rejected', className: 'bg-red-100 text-red-800 border-red-300', icon: XCircle },
-            ordered: { label: 'Ordered', className: 'bg-purple-100 text-purple-800 border-purple-300', icon: CheckCircle },
+    const getStatusConfig = (status: Prescription['status']) => {
+        const variants: Record<string, { label: string; badgeClass: string; icon: any }> = {
+            pending: { label: 'Pending Review', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock },
+            verifying: { label: 'In Review', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200', icon: FileText },
+            approved: { label: 'Approved', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: CheckCircle },
+            rejected: { label: 'Rejected', badgeClass: 'bg-red-50 text-red-700 border-red-200', icon: XCircle },
+            ordered: { label: 'Ordered', badgeClass: 'bg-purple-50 text-purple-700 border-purple-200', icon: CheckCircle },
         }
-        const config = variants[status] || variants.pending
-        const Icon = config.icon
-        return (
-            <Badge className={`${config.className} border text-xs flex items-center gap-1 w-fit`}>
-                <Icon className="h-3 w-3" />
-                {config.label}
-            </Badge>
-        )
+        return variants[status] || variants.pending
     }
 
     const navigateToVerification = (id: string) => {
@@ -88,146 +83,195 @@ export default function PrescriptionsPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto space-y-6 p-6 md:p-8 bg-slate-50 min-h-screen">
+            {/* Row 1: Header */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2 tracking-tight">
-                        📑 Prescription Management
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                        Prescription Management
                     </h1>
-                    <p className="text-muted-foreground mt-1">
-                        Review and digitize customer prescriptions
+                    <p className="text-slate-500 mt-1">
+                        Review and manage uploaded customer prescriptions.
                     </p>
                 </div>
-                <Button variant="outline" size="sm" onClick={loadPrescriptions} disabled={loading}>
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                {/* Status Tabs */}
-                <div className="flex gap-2 flex-wrap">
-                    <Button
-                        variant={statusFilter === 'all' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('all')}
-                    >
-                        All <Badge className="ml-2 bg-white text-black">{statusCounts.all}</Badge>
+                <div className="flex items-center gap-3">
+                    <Button className="bg-emerald-600 hover:bg-emerald-700 text-white border-0">
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
                     </Button>
-                    <Button
-                        variant={statusFilter === 'pending' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('pending')}
-                    >
-                        Pending <Badge className="ml-2 bg-yellow-500">{statusCounts.pending}</Badge>
-                    </Button>
-                    <Button
-                        variant={statusFilter === 'approved' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('approved')}
-                    >
-                        Approved <Badge className="ml-2 bg-green-500">{statusCounts.approved}</Badge>
-                    </Button>
-                    <Button
-                        variant={statusFilter === 'rejected' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter('rejected')}
-                    >
-                        Rejected <Badge className="ml-2 bg-red-500">{statusCounts.rejected}</Badge>
-                    </Button>
-                </div>
-
-                {/* Search */}
-                <div className="flex items-center gap-2 bg-background border border-input rounded-lg px-4 w-full md:w-auto shadow-sm">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search ID, Name, Phone..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="border-0 bg-transparent min-w-[250px] focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
                 </div>
             </div>
 
-            {/* List */}
-            <Card className="overflow-hidden shadow-sm">
+            {/* Row 2: KPI Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                    { label: 'Total Prescriptions', count: statusCounts.all, icon: FileText, color: 'text-slate-600' },
+                    { label: 'Pending Review', count: statusCounts.pending, icon: Clock, color: 'text-amber-600' },
+                    { label: 'Approved', count: statusCounts.approved, icon: CheckCircle, color: 'text-emerald-600' },
+                    { label: 'Rejected', count: statusCounts.rejected, icon: XCircle, color: 'text-red-600' },
+                ].map((kpi, idx) => (
+                    <Card key={idx} className="p-4 shadow-sm border-slate-200 bg-white flex flex-col justify-between h-24 transition-shadow hover:shadow-md cursor-default">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-slate-500">{kpi.label}</span>
+                            <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+                        </div>
+                        <span className="text-2xl font-bold text-slate-900">{kpi.count}</span>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Row 3: Unified Search & Filter Toolbar */}
+            <Card className="p-4 shadow-sm border-slate-200 bg-white">
+                <div className="flex flex-col lg:flex-row gap-4 items-center">
+                    <div className="flex-1 relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                            placeholder="Search by ID, Customer Name, or Phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 bg-slate-50 border-slate-200"
+                        />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-[180px] bg-slate-50 border-slate-200">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Statuses</SelectItem>
+                                <SelectItem value="pending">Pending Review</SelectItem>
+                                <SelectItem value="verifying">In Review</SelectItem>
+                                <SelectItem value="approved">Approved</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                                <SelectItem value="ordered">Ordered</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+            </Card>
+
+            {/* Row 4: Prescription Table */}
+            <Card className="overflow-hidden shadow-sm border-slate-200 bg-white">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-muted/50 border-b">
-                            <tr className="text-left text-xs font-semibold uppercase">
-                                <th className="p-4 whitespace-nowrap">Date Uploaded</th>
-                                <th className="p-4 whitespace-nowrap">Customer</th>
-                                <th className="p-4 whitespace-nowrap">Customer Notes</th>
-                                <th className="p-4 whitespace-nowrap">Status</th>
-                                <th className="p-4 whitespace-nowrap">Pharmacist</th>
-                                <th className="p-4 whitespace-nowrap text-right">Actions</th>
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-medium">
+                            <tr>
+                                <th className="px-4 py-3 font-medium">Date Uploaded</th>
+                                <th className="px-4 py-3 font-medium">Customer</th>
+                                <th className="px-4 py-3 font-medium">Customer Notes</th>
+                                <th className="px-4 py-3 font-medium">Status</th>
+                                <th className="px-4 py-3 font-medium">Pharmacist</th>
+                                <th className="px-4 py-3 font-medium text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {filteredPrescriptions.map((p, index) => (
-                                <tr
-                                    key={p.id}
-                                    className={`border-b hover:bg-muted/30 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-muted/10'
-                                        }`}
-                                >
-                                    <td className="p-4">
-                                        <div>
-                                            <p className="font-medium text-sm">
-                                                {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : 'N/A'}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {p.createdAt ? new Date(p.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
-                                            </p>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-start gap-2">
-                                            <User className="h-4 w-4 text-muted-foreground mt-0.5" />
-                                            <div>
-                                                <p className="text-sm font-medium">{p.customerName || 'Unknown User'}</p>
-                                                <p className="text-xs text-muted-foreground">{p.customerPhone || 'No Phone'}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4">
-                                        {p.medicationNotes?.customerNotes ? (
-                                            <div className="max-w-xs">
-                                                <p className="text-sm text-blue-700 truncate" title={p.medicationNotes.customerNotes}>
-                                                    {p.medicationNotes.customerNotes}
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground">-</span>
-                                        )}
-                                    </td>
-                                    <td className="p-4">
-                                        {getStatusBadge(p.status)}
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="text-sm text-muted-foreground">
-                                            {p.pharmacistName || '-'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <Button
-                                            size="sm"
-                                            onClick={() => navigateToVerification(p.id)}
-                                            className="gap-2"
-                                        >
-                                            <Eye className="h-4 w-4" />
-                                            {p.status === 'pending' ? 'Review' : 'View Details'}
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredPrescriptions.length === 0 && (
+                        <tbody className="divide-y divide-slate-100">
+                            {filteredPrescriptions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                                        No prescriptions found matching your filters.
+                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center justify-center space-y-3">
+                                            <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center">
+                                                <FileText className="h-6 w-6 text-slate-400" />
+                                            </div>
+                                            <p className="text-slate-500 font-medium">No prescriptions found</p>
+                                            <p className="text-xs text-slate-400 max-w-sm">
+                                                There are currently no prescriptions matching your filters. When customers upload prescriptions, they will appear here.
+                                            </p>
+                                            <Button variant="outline" size="sm" onClick={() => {
+                                                setSearchTerm('')
+                                                setStatusFilter('all')
+                                            }}>Reset Filters</Button>
+                                        </div>
                                     </td>
                                 </tr>
+                            ) : (
+                                filteredPrescriptions.map((p) => {
+                                    const statusConfig = getStatusConfig(p.status)
+                                    const StatusIcon = statusConfig.icon
+                                    const isPending = p.status === 'pending'
+
+                                    return (
+                                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            {/* Date Uploaded */}
+                                            <td className="px-4 py-3 align-top">
+                                                <div className="font-medium text-slate-900">
+                                                    {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
+                                                </div>
+                                                <div className="text-xs text-slate-500 mt-1">
+                                                    {p.createdAt ? new Date(p.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                                </div>
+                                            </td>
+
+                                            {/* Customer */}
+                                            <td className="px-4 py-3 align-top">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="h-8 w-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-bold shrink-0">
+                                                        {(p.customerName || 'G').charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-slate-900">{p.customerName || 'Guest'}</div>
+                                                        <div className="text-xs text-slate-500">{p.customerPhone || 'No Phone'}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Customer Notes */}
+                                            <td className="px-4 py-3 align-top max-w-[200px]">
+                                                {p.medicationNotes?.customerNotes ? (
+                                                    <div className="text-slate-600 truncate text-sm" title={p.medicationNotes.customerNotes}>
+                                                        {p.medicationNotes.customerNotes}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 text-sm">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* Status */}
+                                            <td className="px-4 py-3 align-top">
+                                                <Badge variant="outline" className={`${statusConfig.badgeClass} rounded-full border flex items-center gap-1 w-fit`}>
+                                                    <StatusIcon className="h-3 w-3" />
+                                                    {statusConfig.label}
+                                                </Badge>
+                                            </td>
+
+                                            {/* Pharmacist */}
+                                            <td className="px-4 py-3 align-top">
+                                                {p.pharmacistName ? (
+                                                    <div className="flex items-start gap-2 text-slate-700">
+                                                        <User className="h-4 w-4 mt-0.5 text-slate-400" />
+                                                        <span className="text-sm">{p.pharmacistName}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 text-sm">-</span>
+                                                )}
+                                            </td>
+
+                                            {/* Actions */}
+                                            <td className="px-4 py-3 align-top text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-900 group-hover:bg-white">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuLabel>Prescription Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem 
+                                                            onClick={() => navigateToVerification(p.id)}
+                                                            className={isPending ? "text-emerald-600 font-medium" : ""}
+                                                        >
+                                                            {isPending ? (
+                                                                <><Eye className="h-4 w-4 mr-2" /> Review Prescription</>
+                                                            ) : (
+                                                                <><FileText className="h-4 w-4 mr-2" /> View Details</>
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
                             )}
                         </tbody>
                     </table>

@@ -441,10 +441,10 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
 
   return (
     <div className="space-y-6 mb-6">
-      <Card className="p-1">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">{product ? 'Edit Product' : 'Add New Product'}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xl">✕</button>
+      <Card className="p-1 border-slate-200 shadow-sm bg-white">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <h2 className="text-xl font-semibold text-slate-900">{product ? 'Edit Product' : 'Add New Product'}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 text-xl transition-colors">✕</button>
         </div>
 
         {error && (
@@ -455,13 +455,13 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
 
         <form onSubmit={(e) => { e.preventDefault(); saveProduct('published'); }}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start h-auto flex-wrap gap-2 bg-transparent p-4 border-b rounded-none">
-              <TabsTrigger value="basic" className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-md px-4 py-2">Basic Info</TabsTrigger>
-              <TabsTrigger value="medical" className="data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 rounded-md px-4 py-2">Medical Info</TabsTrigger>
-              <TabsTrigger value="pricing" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-700 rounded-md px-4 py-2">Pricing & Tax</TabsTrigger>
-              <TabsTrigger value="inventory" className="data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 rounded-md px-4 py-2">Inventory & Batch</TabsTrigger>
-              <TabsTrigger value="compliance" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-700 rounded-md px-4 py-2">Compliance</TabsTrigger>
-              <TabsTrigger value="seo" className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-700 rounded-md px-4 py-2">SEO</TabsTrigger>
+            <TabsList className="w-full justify-start h-auto flex-wrap gap-2 bg-transparent p-4 border-b border-slate-200 rounded-none">
+              <TabsTrigger value="basic" className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:border-emerald-200 border border-transparent rounded-md px-4 py-2">Basic Info</TabsTrigger>
+              <TabsTrigger value="medical" className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:border-emerald-200 border border-transparent rounded-md px-4 py-2">Medical Info</TabsTrigger>
+              <TabsTrigger value="pricing" className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:border-emerald-200 border border-transparent rounded-md px-4 py-2">Pricing & Tax</TabsTrigger>
+              <TabsTrigger value="inventory" className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:border-emerald-200 border border-transparent rounded-md px-4 py-2">Inventory & Batch</TabsTrigger>
+              <TabsTrigger value="compliance" className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:border-emerald-200 border border-transparent rounded-md px-4 py-2">Compliance</TabsTrigger>
+              <TabsTrigger value="seo" className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 data-[state=active]:border-emerald-200 border border-transparent rounded-md px-4 py-2">SEO</TabsTrigger>
             </TabsList>
 
             <div className="p-6">
@@ -774,10 +774,11 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
             </div>
 
 
-            <div className="p-4 border-t bg-gray-50 flex justify-between gap-3 rounded-b-lg">
+            <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-between gap-3 rounded-b-lg">
               <Button
                 type="button"
                 variant="outline"
+                className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 onClick={() => {
                   const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'seo']
                   const currentIndex = tabs.indexOf(activeTab)
@@ -800,6 +801,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                 <Button 
                   type="button" 
                   variant="secondary" 
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border-0"
                   onClick={() => saveProduct('draft')} 
                   disabled={loading}
                 >
@@ -809,6 +811,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                   <Button
                     type="button"
                     variant="outline"
+                    className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     onClick={() => {
                       const tabs = ['basic', 'medical', 'pricing', 'inventory', 'compliance', 'seo']
                       const currentIndex = tabs.indexOf(activeTab)
@@ -818,7 +821,7 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                     Next
                   </Button>
                 )}
-                <Button type="submit" disabled={loading}>
+                <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                   {loading ? 'Saving...' : (product ? 'Save Changes' : 'Publish Product')}
                 </Button>
               </div>

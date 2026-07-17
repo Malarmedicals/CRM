@@ -59,21 +59,12 @@ export const authRepository = {
 
 // Data mapping: converts raw DB rows to domain User objects
 export function mapDbRowToUser(row: any): User {
-  const normalizeRole = (role: any): User['role'] => {
-    if (!role || typeof role !== 'string') return 'user'
-    const normalized = role.toLowerCase().trim()
-    if (normalized === 'admin' || normalized === 'manager' || normalized === 'user' || normalized === 'customer') {
-      return normalized as User['role']
-    }
-    return 'user'
-  }
-
   return {
     id: row.uid,
     email: row.email || '',
     displayName: row.display_name || 'Unknown User',
     phoneNumber: row.phone_number,
-    role: normalizeRole(row.role),
+    role: row.role || 'user',
     isBlocked: row.is_active === false,
     createdAt: new Date(row.created_at),
     updatedAt: new Date(row.updated_at),

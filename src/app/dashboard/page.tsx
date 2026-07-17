@@ -63,16 +63,16 @@ export default function DashboardPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-muted/40 pb-10">
-      <main className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto animate-fade-in">
+    <div className="min-h-screen bg-slate-50 pb-12">
+      <main className="p-6 md:p-10 space-y-10 max-w-[1600px] mx-auto animate-fade-in">
         {/* Welcome Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard Overview</h1>
-            <p className="text-muted-foreground mt-1">Welcome back, here's what's happening at Malar Medicals today.</p>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h1>
+            <p className="text-slate-500 mt-2">Welcome back, here's what's happening at Malar Medicals today.</p>
           </div>
           <div className="text-right hidden md:block">
-            <p className="text-sm font-medium text-foreground/80">Last updated: {new Date().toLocaleTimeString()}</p>
+            <p className="text-sm font-medium text-slate-500">Last updated: {new Date().toLocaleTimeString()}</p>
           </div>
         </div>
 

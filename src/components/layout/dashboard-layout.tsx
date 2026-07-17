@@ -7,20 +7,52 @@ import { authService } from '@/features/auth'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet'
-import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, MoreVertical, ChevronDown, Warehouse, FileText } from 'lucide-react'
+import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, MoreVertical, ChevronDown, Warehouse, FileText, Shield } from 'lucide-react'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
+import { PermissionProvider, usePermissions } from '@/components/auth/permission-provider'
+import type { PermissionKey } from '@/lib/constants/permissions'
+
+interface MenuItem {
+  href?: string
+  label: string
+  icon: any
+  subItems?: { href: string; label: string; requiredPermission?: PermissionKey }[]
+  requiredPermission?: PermissionKey
+}
+
+const menuItems: MenuItem[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: BarChart3, requiredPermission: 'dashboard.view' },
+  {
+    label: 'Content Management',
+    icon: Package,
+    subItems: [
+      { href: '/dashboard/products', label: 'Product Management', requiredPermission: 'products.view' },
+      { href: '/dashboard/categories', label: 'Category Management', requiredPermission: 'categories.view' },
+      { href: '/dashboard/banners', label: 'Banner Management', requiredPermission: 'banners.view' },
+      { href: '/dashboard/seo-content', label: 'SEO Content Blocks' },
+    ]
+  },
+  { href: '/dashboard/inventory', label: 'Inventory', icon: Warehouse, requiredPermission: 'inventory.view' },
+  { href: '/dashboard/users', label: 'Users', icon: Users, requiredPermission: 'users.view' },
+  { href: '/dashboard/roles', label: 'Roles', icon: Shield, requiredPermission: 'roles.view' },
+  { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart, requiredPermission: 'orders.view' },
+  { href: '/dashboard/prescriptions', label: 'Prescriptions', icon: FileText },
+  { href: '/dashboard/crm', label: 'CRM Tools', icon: Mail },
+]
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardLayoutInner({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null)
+  
+  const { hasPermission } = usePermissions()
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -44,33 +76,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }
 
-  const menuItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-    {
-      label: 'Content Management',
-      icon: Package,
-      subItems: [
-        { href: '/dashboard/products', label: 'Product Management' },
-        { href: '/dashboard/categories', label: 'Category Management' },
-        { href: '/dashboard/banners/add', label: 'Add Banner' },
-        { href: '/dashboard/seo-content', label: 'SEO Content Blocks' },
-      ]
-    },
-    { href: '/dashboard/inventory', label: 'Inventory', icon: Warehouse },
-    { href: '/dashboard/users', label: 'Users', icon: Users },
-    { href: '/dashboard/orders', label: 'Orders', icon: ShoppingCart },
-    { href: '/dashboard/prescriptions', label: 'Prescriptions', icon: FileText },
-    { href: '/dashboard/crm', label: 'CRM Tools', icon: Mail },
-  ]
+  // Filter main items and sub items based on permissions
+  const filteredMenuItems = menuItems.map(item => {
+    if (item.subItems) {
+      const filteredSubItems = item.subItems.filter(subItem => 
+        !subItem.requiredPermission || hasPermission(subItem.requiredPermission)
+      )
+      return { ...item, subItems: filteredSubItems }
+    }
+    return item
+  }).filter(item => {
+    // Hide item if it requires a permission the user doesn't have
+    if (item.requiredPermission && !hasPermission(item.requiredPermission)) return false
+    // Hide parent if it has subitems but all were filtered out
+    if (item.subItems && item.subItems.length === 0) return false
+    return true
+  })
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <aside className={`h-full w-full bg-sidebar border-r border-sidebar-border flex flex-col ${isMobile ? '' : 'shadow-2xl'} overflow-hidden transition-all duration-300`}>
+    <aside className={`h-full w-full bg-white border-r border-slate-200 flex flex-col ${isMobile ? '' : ''} overflow-hidden transition-all duration-300`}>
       {/* Header */}
-      <div className="px-4 py-4 border-b border-sidebar-border flex items-center justify-between h-16 shrink-0 bg-white">
+      <div className="px-4 py-4 border-b border-slate-100 flex items-center justify-between h-16 shrink-0 bg-white">
         {(sidebarOpen || isMobile) ? (
           <div className="flex items-center gap-3 w-full justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-teal-600 flex items-center justify-center shadow-sm">
+              <div className="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-sm">
                 <span className="font-bold text-white">M</span>
               </div>
               <h1 className="text-xl font-bold text-slate-800 animate-in fade-in duration-300">Malar CRM</h1>
@@ -91,26 +121,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto bg-white">
-        {menuItems.map((item) => {
+      <nav className="flex-1 p-4 space-y-1 overflow-y-scroll bg-white no-scrollbar">
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon
-          // @ts-ignore
           const hasSubItems = item.subItems && item.subItems.length > 0
           const isSubmenuOpen = openSubmenu === item.label
-          const isActive = item.href === pathname || (hasSubItems && item.subItems?.some((sub: any) => sub.href === pathname))
+          
+          const checkActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`));
+          const isActive = (item.href && checkActive(item.href)) || (hasSubItems && item.subItems?.some((sub: any) => checkActive(sub.href)))
 
           if (hasSubItems) {
             return (
-              <div
-                key={item.label}
-                onMouseEnter={() => {
-                  setOpenSubmenu(item.label)
-                  if (!sidebarOpen && !isMobile) {
-                    setSidebarOpen(true)
-                  }
-                }}
-                onMouseLeave={() => setOpenSubmenu(null)}
-              >
+              <div key={item.label}>
                 <button
                   onClick={() => {
                     if (openSubmenu === item.label) {
@@ -122,15 +144,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       }
                     }
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${isActive
-                    ? 'bg-teal-50 text-teal-700 font-medium'
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 group text-sm ${isActive
+                    ? 'bg-emerald-50 text-emerald-700 font-medium'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     } ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}
                 >
-                  <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'} ${sidebarOpen || isMobile ? '' : 'h-6 w-6'}`} />
+                  <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600'} ${sidebarOpen || isMobile ? '' : 'h-5 w-5'}`} />
                   {(sidebarOpen || isMobile) && (
                     <>
-                      <span className="flex-1 text-left">
+                      <span className="flex-1 text-left font-medium">
                         {item.label}
                       </span>
                       <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isSubmenuOpen ? 'rotate-180' : ''}`} />
@@ -140,18 +162,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                 {/* Submenu Items */}
                 {isSubmenuOpen && (sidebarOpen || isMobile) && (
-                  <div className="ml-4 mt-1 space-y-1 border-l-2 border-slate-100 pl-2 animate-in slide-in-from-top-2 duration-200">
-                    {/* @ts-ignore */}
-                    {item.subItems.map((subItem: any) => {
-                      const isSubActive = subItem.href === pathname
+                  <div className="ml-5 mt-1 space-y-0.5 border-l border-slate-200 pl-2">
+                    {item.subItems?.map((subItem: any) => {
+                      const isSubActive = checkActive(subItem.href)
                       return (
                         <Link
                           key={subItem.href}
                           href={subItem.href}
                           onClick={() => isMobile && setIsMobileOpen(false)}
                         >
-                          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${isSubActive
-                            ? 'bg-teal-50 text-teal-700 font-medium'
+                          <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${isSubActive
+                            ? 'bg-emerald-50 text-emerald-700'
                             : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                             }`}>
                             {subItem.label}
@@ -167,11 +188,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           return (
             <Link key={item.href} href={item.href!} onClick={() => isMobile && setIsMobileOpen(false)}>
-              <div className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group ${isActive
-                ? 'bg-teal-600 text-white shadow-md shadow-teal-200'
+              <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 group text-sm ${isActive
+                ? 'bg-emerald-50 text-emerald-700 font-medium'
                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 } ${!sidebarOpen && !isMobile ? 'justify-center' : ''}`}>
-                <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-600'} ${sidebarOpen || isMobile ? '' : 'h-6 w-6'}`} />
+                <Icon className={`h-4 w-4 transition-colors ${isActive ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600'} ${sidebarOpen || isMobile ? '' : 'h-5 w-5'}`} />
                 {(sidebarOpen || isMobile) && (
                   <span className="font-medium animate-in fade-in slide-in-from-left-2 duration-300">
                     {item.label}
@@ -184,7 +205,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border shrink-0 bg-white">
+      <div className="p-4 border-t border-slate-100 shrink-0 bg-white">
         <Button
           variant="ghost"
           size="sm"
@@ -200,20 +221,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   )
 
   return (
-    <div className="flex h-screen bg-[#F7F9FB] overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       {/* Desktop Sidebar */}
       <div
         className={`hidden md:flex fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out ${sidebarOpen ? 'w-64' : 'w-20'
           }`}
-        onMouseEnter={() => setSidebarOpen(true)}
-        onMouseLeave={() => setSidebarOpen(false)}
       >
         <SidebarContent />
       </div>
 
       {/* Mobile Sidebar (Sheet) */}
       <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-        <SheetContent side="left" className="p-0 w-72 border-r border-sidebar-border bg-white">
+        <SheetContent side="left" className="p-0 w-72 border-r border-slate-200 bg-white">
           <SheetHeader className="sr-only">
             <SheetTitle>Mobile Navigation</SheetTitle>
             <SheetDescription>
@@ -234,5 +253,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  return (
+    <PermissionProvider>
+      <DashboardLayoutInner>
+        {children}
+      </DashboardLayoutInner>
+    </PermissionProvider>
   )
 }

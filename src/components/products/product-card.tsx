@@ -35,9 +35,9 @@ export function ProductCard({ product, onEdit, onDelete, onToggleVisibility }: P
     }
 
     return (
-        <Card className="overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all bg-white group h-full flex flex-col">
+        <Card className="overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition-all bg-white group h-full flex flex-col">
             {/* Image Area */}
-            <div className="aspect-video w-full relative bg-gray-100 overflow-hidden group/image">
+            <div className="aspect-video w-full relative bg-slate-50 overflow-hidden group/image">
                 {allImages.length > 0 ? (
                     <>
                         <Image
@@ -79,7 +79,7 @@ export function ProductCard({ product, onEdit, onDelete, onToggleVisibility }: P
                     </>
                 ) : (
                     <div className="flex h-full w-full items-center justify-center">
-                        <Package className="h-10 w-10 text-gray-300" />
+                        <Package className="h-10 w-10 text-slate-300" />
                     </div>
                 )}
             </div>
@@ -87,24 +87,24 @@ export function ProductCard({ product, onEdit, onDelete, onToggleVisibility }: P
             <div className="p-4 flex flex-col flex-1">
                 {/* Category Badge & Status */}
                 <div className="mb-3 flex justify-between items-center">
-                    <span className="inline-block bg-yellow-400 text-black text-xs font-medium px-2 py-1 rounded-md">
+                    <span className="inline-block bg-slate-100 text-slate-700 text-xs font-medium px-2 py-1 rounded-md">
                         {product.category || 'Uncategorized'}
                     </span>
                     {product.status === 'draft' && (
-                        <span className="inline-block bg-gray-200 text-gray-700 text-xs font-medium px-2 py-1 rounded-md">
+                        <span className="inline-block bg-slate-50 border border-slate-200 text-slate-500 text-xs font-medium px-2 py-1 rounded-md">
                             Draft
                         </span>
                     )}
                 </div>
 
                 {/* Title */}
-                <h3 className="font-bold text-lg mb-1 line-clamp-1 text-gray-900" title={product.name}>
+                <h3 className="font-bold text-lg mb-1 line-clamp-1 text-slate-900" title={product.name}>
                     {product.name}
                 </h3>
 
                 {/* Price & Stock info */}
-                <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                    <span className="font-medium text-gray-900">₹{product.price?.toFixed(2)}</span>
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                    <span className="font-medium text-slate-900">₹{product.price?.toFixed(2)}</span>
                     <span>•</span>
                     <span>{product.stockQuantity} items</span>
                 </div>
@@ -113,29 +113,29 @@ export function ProductCard({ product, onEdit, onDelete, onToggleVisibility }: P
                 {onToggleVisibility && (
                     <div className="flex flex-wrap gap-1 mb-4">
                         <Badge
-                            variant={product.seo?.isNewArrival ? 'default' : 'outline'}
-                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            variant="outline"
+                            className={`cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80 border ${product.seo?.isNewArrival ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'}`}
                             onClick={() => onToggleVisibility('isNewArrival', !product.seo?.isNewArrival)}
                         >
                             New
                         </Badge>
                         <Badge
-                            variant={product.seo?.isBestSeller ? 'default' : 'outline'}
-                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            variant="outline"
+                            className={`cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80 border ${product.seo?.isBestSeller ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'}`}
                             onClick={() => onToggleVisibility('isBestSeller', !product.seo?.isBestSeller)}
                         >
                             Best Seller
                         </Badge>
                         <Badge
-                            variant={product.seo?.isTrending ? 'default' : 'outline'}
-                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            variant="outline"
+                            className={`cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80 border ${product.seo?.isTrending ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'}`}
                             onClick={() => onToggleVisibility('isTrending', !product.seo?.isTrending)}
                         >
                             Trending
                         </Badge>
                         <Badge
-                            variant={product.seo?.isDailyEssential ? 'default' : 'outline'}
-                            className="cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80"
+                            variant="outline"
+                            className={`cursor-pointer text-[10px] px-1.5 py-0 hover:opacity-80 border ${product.seo?.isDailyEssential ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'}`}
                             onClick={() => onToggleVisibility('isDailyEssential', !product.seo?.isDailyEssential)}
                         >
                             Daily Ess.
@@ -148,21 +148,21 @@ export function ProductCard({ product, onEdit, onDelete, onToggleVisibility }: P
                     <Button
                         size="sm"
                         onClick={onEdit}
-                        className="bg-zinc-900 hover:bg-zinc-800 text-white h-9 px-4 text-xs font-medium"
+                        className="bg-slate-900 hover:bg-slate-800 text-white h-9 px-4 text-xs font-medium"
                     >
                         Edit
                     </Button>
                     <Button
                         size="sm"
                         onClick={onDelete}
-                        className="bg-red-500 hover:bg-red-600 text-white h-9 px-4 text-xs font-medium"
+                        className="bg-red-50 hover:bg-red-100 text-red-600 h-9 px-4 text-xs font-medium border-0 shadow-none"
                     >
                         Delete
                     </Button>
 
                     <div className="ml-auto">
-                        <span className={`text-[10px] font-bold uppercase tracking-wider ${product.stockQuantity === 0 ? 'text-red-500' :
-                            product.stockQuantity < 10 ? 'text-orange-500' : 'text-green-500'
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${product.stockQuantity === 0 ? 'text-red-600' :
+                            product.stockQuantity < 10 ? 'text-amber-600' : 'text-emerald-600'
                             }`}>
                             {product.stockQuantity === 0 ? 'No Stock' :
                                 product.stockQuantity < 10 ? 'Low Stock' : 'Active'}

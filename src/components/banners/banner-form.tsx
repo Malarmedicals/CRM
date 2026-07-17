@@ -8,15 +8,13 @@ import { bannerService } from '@/features/crm'
 import { productService } from '@/features/products'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Loader2, Upload, X, Bold, Italic, Underline, List, ListOrdered, Image as ImageIcon } from 'lucide-react'
+import { Loader2, X, Image as ImageIcon } from 'lucide-react'
 import { getCroppedImg } from '@/lib/utils/cropImage'
+import { formatDate } from '@/lib/utils/format'
 
 interface BannerFormProps {
     onSuccess: () => void
@@ -24,24 +22,32 @@ interface BannerFormProps {
     initialData?: Banner
 }
 
+const POSITIONS = [
+    'HOME_HERO', 'HOME_MIDDLE', 'HOME_BOTTOM', 
+    'CATEGORY_HERO', 'CATEGORY_MIDDLE', 
+    'PRODUCT_PAGE', 'CART_PAGE', 'CHECKOUT_PAGE', 
+    'PROFILE_PAGE', 'LOGIN_PAGE', 'REGISTER_PAGE', 'OFFERS_PAGE'
+]
+
+const STATUSES = ['Draft', 'Scheduled', 'Active', 'Expired', 'Archived']
+const REDIRECT_TYPES = ['None', 'Internal Page', 'External URL', 'Product', 'Category', 'Brand', 'Offer']
+
 export default function BannerForm({ onSuccess, onCancel, initialData }: BannerFormProps) {
     const [formData, setFormData] = useState<Partial<Banner>>({
-        title: initialData?.title || '',
-        category: initialData?.category || '',
-        categoryTag: initialData?.categoryTag || '',
-        showCategoryTag: initialData?.showCategoryTag || false,
-        priceDisplay: initialData?.priceDisplay || '',
-        description: initialData?.description || '',
-        seoTitle: initialData?.seoTitle || '',
-        seoDescription: initialData?.seoDescription || '',
-        linkProductId: initialData?.linkProductId || '',
-        bannerType: initialData?.bannerType || 'Single Banner',
-        isActive: initialData?.isActive ?? true,
+        name: initialData?.name || '',
+        position: initialData?.position || '',
+        displayOrder: initialData?.displayOrder || 0,
+        status: initialData?.status || 'Draft',
+        redirectType: initialData?.redirectType || 'None',
+        redirectTarget: initialData?.redirectTarget || '',
+        openIn: initialData?.openIn || 'Same Tab',
+        startDate: initialData?.startDate,
+        endDate: initialData?.endDate,
+        altText: initialData?.altText || '',
         image: initialData?.image || ''
     })
 
     const [imageSrc, setImageSrc] = useState<string | null>(initialData?.image || null)
-    // Only set crop/zoom if we uploaded a NEW image
     const [isNewImage, setIsNewImage] = useState(false)
 
     const [crop, setCrop] = useState({ x: 0, y: 0 })
@@ -53,6 +59,7 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
     // Data for dropdowns
     const [products, setProducts] = useState<Product[]>([])
     const [categories, setCategories] = useState<string[]>([])
+    const [brands, setBrands] = useState<string[]>([])
 
     useEffect(() => {
         const loadData = async () => {
@@ -60,9 +67,11 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                 const allProducts = await productService.getAllProducts()
                 setProducts(allProducts)
 
-                // Extract unique categories
-                const cats = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean)))
+                const cats = Array.from(new Set(allProducts.map(p => p.category).filter(Boolean))) as string[]
                 setCategories(cats.sort())
+
+                const brs = Array.from(new Set(allProducts.map(p => p.brandName).filter(Boolean))) as string[]
+                setBrands(brs.sort())
             } catch (err) {
                 console.error('Failed to load products/categories:', err)
             }
@@ -92,14 +101,18 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
         setError('')
 
         try {
-            if (!imageSrc && !formData.image) {
-                throw new Error('Please upload an image')
+            if (!formData.name) throw new Error('Banner Name is required')
+            if (!formData.position) throw new Error('Banner Position is required')
+            if (!imageSrc && !formData.image) throw new Error('Banner Image is required')
+
+            if (formData.redirectType === 'External URL' && formData.redirectTarget) {
+                try {
+                    new URL(formData.redirectTarget.trim())
+                } catch {
+                    throw new Error('Please enter a valid External URL (e.g., https://example.com)')
+                }
             }
 
-            if (!formData.category) throw new Error('Category is required')
-
-
-            // 1. Get cropped image blob
             let imageUrl = formData.image
 
             if (isNewImage && imageSrc && croppedAreaPixels) {
@@ -112,26 +125,10 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                 throw new Error('Please upload an image')
             }
 
-
-            // 3. Find full product link/details if needed, but we store ID
-            // We can also construct a link url from product ID
-            const selectedProduct = products.find(p => p.id === formData.linkProductId)
-            const linkUrl = selectedProduct ? `/products/${selectedProduct.id}` : '/products'
-
-            // 4. Save banner data
             const bannerData = {
-                title: formData.title || '',
-                category: formData.category,
-                categoryTag: formData.categoryTag || '',
-                showCategoryTag: formData.showCategoryTag || false,
-                priceDisplay: formData.priceDisplay || '',
-                description: formData.description || '',
-                seoTitle: formData.seoTitle || '',
-                seoDescription: formData.seoDescription || '',
-                linkProductId: formData.linkProductId,
-                link: linkUrl,
-                bannerType: formData.bannerType as any,
-                isActive: formData.isActive || false,
+                ...formData,
+                displayOrder: Number(formData.displayOrder) || 0,
+                redirectTarget: formData.redirectType === 'None' ? '' : formData.redirectTarget?.trim(),
                 image: imageUrl,
             }
 
@@ -151,201 +148,209 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
     }
 
     return (
-        <Card className="p-6 max-w-5xl mx-auto shadow-sm animate-fade-in">
-            <form onSubmit={handleSubmit} className="space-y-8">
-
-                {/* Row 1: Title, Category stuff */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+        <form onSubmit={handleSubmit} className="space-y-8 animate-fade-in pb-10">
+            {/* Section 1: Basic Information */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>1. Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="title">Banner Title (Optional)</Label>
+                        <Label htmlFor="name">Banner Name *</Label>
                         <Input
-                            id="title"
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="e.g. Summer Sale"
+                            id="name"
+                            value={formData.name || ''}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g. Summer Sale 2026"
                         />
                     </div>
-
                     <div className="space-y-2">
-                        <Label htmlFor="category">Category *</Label>
+                        <Label htmlFor="position">Banner Position *</Label>
                         <Select
-                            value={formData.category}
-                            onValueChange={(val) => setFormData({ ...formData, category: val })}
+                            value={formData.position}
+                            onValueChange={(val) => setFormData({ ...formData, position: val })}
                         >
-                            <SelectTrigger id="category">
-                                <SelectValue placeholder="Select Category" />
+                            <SelectTrigger id="position">
+                                <SelectValue placeholder="Select Position" />
                             </SelectTrigger>
                             <SelectContent>
-                                {categories.map(cat => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                {POSITIONS.map(pos => (
+                                    <SelectItem key={pos} value={pos}>{pos}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
-
                     <div className="space-y-2">
-                        <Label htmlFor="categoryTag">Category Tag</Label>
+                        <Label htmlFor="displayOrder">Display Order *</Label>
                         <Input
-                            id="categoryTag"
-                            value={formData.categoryTag}
-                            onChange={(e) => setFormData({ ...formData, categoryTag: e.target.value })}
-                            placeholder="e.g., Products Essentials"
+                            id="displayOrder"
+                            type="number"
+                            value={formData.displayOrder ?? 0}
+                            onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                            placeholder="0"
                         />
                     </div>
-
-                    <div className="flex flex-col justify-end h-full pb-2">
-                        <div className="flex items-center space-x-2">
-                            <Checkbox
-                                id="showCategoryTag"
-                                checked={formData.showCategoryTag}
-                                onCheckedChange={(checked) => setFormData({ ...formData, showCategoryTag: checked as boolean })}
-                            />
-                            <Label htmlFor="showCategoryTag" className="cursor-pointer font-normal text-muted-foreground">Show Category Tag</Label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Row 2: Price */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="priceDisplay">Price Display (Optional)</Label>
-                        <Input
-                            id="priceDisplay"
-                            value={formData.priceDisplay}
-                            onChange={(e) => setFormData({ ...formData, priceDisplay: e.target.value })}
-                            placeholder="e.g., $196.98"
-                        />
-                    </div>
-                </div>
-
-                {/* Row 3: Description */}
-                <div className="space-y-2">
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <div className="border rounded-md bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 overflow-hidden">
-                        <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <Bold className="h-4 w-4" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <Italic className="h-4 w-4" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <Underline className="h-4 w-4" />
-                            </Button>
-                            <div className="w-px h-4 bg-border mx-2" />
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <List className="h-4 w-4" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                <ListOrdered className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <Textarea
-                            id="description"
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Enter banner description..."
-                            className="border-0 focus-visible:ring-0 min-h-[120px] resize-y rounded-none"
-                        />
-                    </div>
-                </div>
-
-                {/* Row 4: SEO & Links */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label htmlFor="seoTitle">SEO Title</Label>
-                        <Input
-                            id="seoTitle"
-                            value={formData.seoTitle}
-                            onChange={(e) => setFormData({ ...formData, seoTitle: e.target.value })}
-                            placeholder="SEO optimized title (50-60 characters)"
-                        />
-                        <div className="text-xs text-muted-foreground text-right">{formData.seoTitle?.length || 0}/60</div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="seoDescription">SEO Description</Label>
-                        <Textarea
-                            id="seoDescription"
-                            value={formData.seoDescription}
-                            onChange={(e) => setFormData({ ...formData, seoDescription: e.target.value })}
-                            placeholder="SEO meta description (150-160 characters)"
-                            rows={3}
-                        />
-                        <div className="text-xs text-muted-foreground text-right">{formData.seoDescription?.length || 0}/160</div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="linkProductId">Link Product</Label>
+                        <Label htmlFor="status">Status *</Label>
                         <Select
-                            value={formData.linkProductId}
-                            onValueChange={(val) => setFormData({ ...formData, linkProductId: val })}
+                            value={formData.status}
+                            onValueChange={(val) => setFormData({ ...formData, status: val })}
                         >
-                            <SelectTrigger id="linkProductId">
-                                <SelectValue placeholder="Search product by name..." />
+                            <SelectTrigger id="status">
+                                <SelectValue placeholder="Select Status" />
                             </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
-                                {products.map(p => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                        {p.name}
-                                    </SelectItem>
+                            <SelectContent>
+                                {STATUSES.map(s => (
+                                    <SelectItem key={s} value={s}>{s}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
+                </CardContent>
+            </Card>
 
+            {/* Section 2: Navigation */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>2. Navigation</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="bannerType">Banner Type</Label>
+                        <Label htmlFor="redirectType">Redirect Type *</Label>
                         <Select
-                            value={formData.bannerType}
-                            onValueChange={(val) => setFormData({ ...formData, bannerType: val as any })}
+                            value={formData.redirectType}
+                            onValueChange={(val) => setFormData({ ...formData, redirectType: val, redirectTarget: '' })}
                         >
-                            <SelectTrigger id="bannerType">
-                                <SelectValue placeholder="Select Banner Type" />
+                            <SelectTrigger id="redirectType">
+                                <SelectValue placeholder="Select Redirect Type" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Single Banner">Single Banner</SelectItem>
-                                <SelectItem value="Slider">Slider</SelectItem>
-                                <SelectItem value="Grid">Grid</SelectItem>
+                                {REDIRECT_TYPES.map(t => (
+                                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
-
-                    <div className="flex flex-col justify-end pb-2">
-                        <div className="flex items-center space-x-2">
-                            <Switch
-                                id="isActive"
-                                checked={formData.isActive}
-                                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    
+                    <div className="space-y-2">
+                        <Label htmlFor="redirectTarget">Redirect Target</Label>
+                        {formData.redirectType === 'None' ? (
+                            <Input disabled placeholder="No redirect" />
+                        ) : formData.redirectType === 'External URL' ? (
+                            <Input 
+                                value={formData.redirectTarget || ''} 
+                                onChange={e => setFormData({ ...formData, redirectTarget: e.target.value })} 
+                                placeholder="https://..." 
                             />
-                            <Label htmlFor="isActive" className="cursor-pointer">Active Status</Label>
-                        </div>
+                        ) : formData.redirectType === 'Internal Page' ? (
+                            <Input 
+                                value={formData.redirectTarget || ''} 
+                                onChange={e => setFormData({ ...formData, redirectTarget: e.target.value })} 
+                                placeholder="e.g. /offers" 
+                            />
+                        ) : formData.redirectType === 'Product' ? (
+                            <Select value={formData.redirectTarget} onValueChange={v => setFormData({ ...formData, redirectTarget: v })}>
+                                <SelectTrigger><SelectValue placeholder="Select Product" /></SelectTrigger>
+                                <SelectContent>
+                                    {products.map(p => <SelectItem key={p.id} value={p.id!}>{p.name}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        ) : formData.redirectType === 'Category' ? (
+                            <Select value={formData.redirectTarget} onValueChange={v => setFormData({ ...formData, redirectTarget: v })}>
+                                <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
+                                <SelectContent>
+                                    {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        ) : formData.redirectType === 'Brand' ? (
+                            <Select value={formData.redirectTarget} onValueChange={v => setFormData({ ...formData, redirectTarget: v })}>
+                                <SelectTrigger><SelectValue placeholder="Select Brand" /></SelectTrigger>
+                                <SelectContent>
+                                    {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input 
+                                value={formData.redirectTarget || ''} 
+                                onChange={e => setFormData({ ...formData, redirectTarget: e.target.value })} 
+                                placeholder="Target ID or Name" 
+                            />
+                        )}
                     </div>
-                </div>
 
-                {/* Image Section */}
-                <div className="space-y-3 pt-4 border-t">
-                    <Label className="text-base font-semibold">Banner Image *</Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="openIn">Open Link In</Label>
+                        <Select
+                            value={formData.openIn}
+                            onValueChange={(val) => setFormData({ ...formData, openIn: val })}
+                        >
+                            <SelectTrigger id="openIn">
+                                <SelectValue placeholder="Select Tab Behavior" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="Same Tab">Same Tab</SelectItem>
+                                <SelectItem value="New Tab">New Tab</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
 
+            {/* Section 3: Scheduling */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>3. Scheduling (Optional)</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="startDate">Start Date</Label>
+                        <Input
+                            id="startDate"
+                            type="datetime-local"
+                            value={formData.startDate ? new Date(formData.startDate.getTime() - formData.startDate.getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''}
+                            onChange={(e) => setFormData({ ...formData, startDate: e.target.value ? new Date(e.target.value) : undefined })}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="endDate">End Date</Label>
+                        <Input
+                            id="endDate"
+                            type="datetime-local"
+                            value={formData.endDate ? new Date(formData.endDate.getTime() - formData.endDate.getTimezoneOffset() * 60000).toISOString().slice(0,16) : ''}
+                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value ? new Date(e.target.value) : undefined })}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Section 4: Banner Image */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>4. Banner Image *</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                     {!isNewImage && imageSrc ? (
-                        <div className="relative group rounded-xl overflow-hidden border">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={imageSrc} alt="Preview" className="w-full h-[300px] object-cover" />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    onClick={() => {
-                                        setImageSrc(null)
-                                        setIsNewImage(true)
-                                    }}
-                                >
-                                    Change Image
-                                </Button>
+                        <div className="space-y-4">
+                            <Label className="text-muted-foreground">Desktop & Mobile Preview</Label>
+                            <div className="relative group rounded-xl overflow-hidden border">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={imageSrc} alt="Preview" className="w-full aspect-[21/9] object-cover" />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={() => {
+                                            setImageSrc(null)
+                                            setIsNewImage(true)
+                                        }}
+                                    >
+                                        Change Image
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     ) : !imageSrc ? (
-                        <div className="mt-2 border-2 border-dashed border-border rounded-xl p-10 text-center hover:bg-muted/50 transition-all duration-200 cursor-pointer group">
+                        <div className="border-2 border-dashed border-border rounded-xl p-10 text-center hover:bg-muted/50 transition-all duration-200 cursor-pointer group">
                             <Input
                                 type="file"
                                 accept="image/*"
@@ -365,13 +370,13 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                             </Label>
                         </div>
                     ) : (
-                        <div className="mt-2 space-y-4 animate-slide-up">
-                            <div className="relative h-[300px] w-full bg-black/5 rounded-xl overflow-hidden ring-1 ring-border shadow-inner">
+                        <div className="space-y-4 animate-slide-up">
+                            <div className="relative w-full aspect-[21/9] bg-black/5 rounded-xl overflow-hidden ring-1 ring-border shadow-inner">
                                 <Cropper
                                     image={imageSrc}
                                     crop={crop}
                                     zoom={zoom}
-                                    aspect={16 / 9}
+                                    aspect={21 / 9}
                                     onCropChange={setCrop}
                                     onCropComplete={onCropComplete}
                                     onZoomChange={setZoom}
@@ -399,24 +404,55 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                             </div>
                         </div>
                     )}
-                </div>
+                </CardContent>
+            </Card>
 
-                {error && (
-                    <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-                        {error}
+            {/* Section 5: Accessibility */}
+            <Card className="shadow-sm">
+                <CardHeader>
+                    <CardTitle>5. Accessibility</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="space-y-2">
+                        <Label htmlFor="altText">Alt Text (Recommended)</Label>
+                        <Input
+                            id="altText"
+                            value={formData.altText || ''}
+                            onChange={(e) => setFormData({ ...formData, altText: e.target.value })}
+                            placeholder="Description for screen readers"
+                        />
                     </div>
-                )}
+                </CardContent>
+            </Card>
 
-                <div className="flex justify-end gap-3 pt-6 border-t">
-                    <Button type="button" variant="outline" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Banner
-                    </Button>
+            {/* Section 6: Metadata (Read Only) */}
+            {initialData && (
+                <Card className="shadow-sm bg-slate-50/50">
+                    <CardHeader>
+                        <CardTitle className="text-slate-700">6. Metadata</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4 text-sm text-slate-600">
+                        <div><strong className="text-slate-800">Created:</strong> {initialData.createdAt ? formatDate(initialData.createdAt) : '-'}</div>
+                        <div><strong className="text-slate-800">Updated:</strong> {initialData.updatedAt ? formatDate(initialData.updatedAt) : '-'}</div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                    {error}
                 </div>
-            </form>
-        </Card>
+            )}
+
+            <div className="flex justify-end gap-3">
+                <Button type="button" variant="outline" onClick={onCancel}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Banner
+                </Button>
+            </div>
+        </form>
     )
 }

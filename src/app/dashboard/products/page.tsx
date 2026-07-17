@@ -13,6 +13,7 @@ import { BulkImportModal } from '@/features/products/bulk-import-modal'
 import Papa from 'papaparse'
 import { useRouter } from 'next/navigation'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -22,6 +23,7 @@ export default function ProductsPage() {
   const [visibilityFilter, setVisibilityFilter] = useState('all')
   const [showBulkImport, setShowBulkImport] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean, id: string, name: string }>({ open: false, id: '', name: '' })
   const router = useRouter()
 
   useEffect(() => {
@@ -76,14 +78,18 @@ export default function ProductsPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await productService.deleteProduct(id)
-        setProducts(products.filter((p) => p.id !== id))
-      } catch (error) {
-        console.error('Failed to delete product:', error)
-      }
+  const handleDelete = (id: string, name: string) => {
+    setDeleteConfirm({ open: true, id, name })
+  }
+
+  const confirmDelete = async () => {
+    try {
+      await productService.deleteProduct(deleteConfirm.id)
+      setProducts(products.filter((p) => p.id !== deleteConfirm.id))
+    } catch (error) {
+      console.error('Failed to delete product:', error)
+    } finally {
+      setDeleteConfirm(prev => ({ ...prev, open: false }))
     }
   }
 
@@ -151,24 +157,24 @@ export default function ProductsPage() {
 
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="p-6 md:p-10 max-w-[1600px] mx-auto space-y-8 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
-          <p className="text-muted-foreground mt-1">Manage medicines and products</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Product Management</h1>
+          <p className="text-slate-500 mt-1">Manage medicines and products</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handleExportProducts} className="gap-2">
+          <Button variant="outline" onClick={handleExportProducts} className="gap-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button variant="outline" onClick={() => setShowBulkImport(true)} className="gap-2">
+          <Button variant="outline" onClick={() => setShowBulkImport(true)} className="gap-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900">
             <Upload className="h-4 w-4" />
             Bulk Import
           </Button>
           <Button
             onClick={() => router.push('/dashboard/products/add')}
-            className="gap-2"
+            className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <Plus className="h-4 w-4" />
             Add Product
@@ -185,19 +191,19 @@ export default function ProductsPage() {
           }} 
         />
       )}
-      <div className="flex flex-col sm:flex-row items-center gap-4 bg-background border border-input rounded-lg p-2 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white border border-slate-200 rounded-lg p-2 shadow-sm">
         <div className="flex items-center gap-2 flex-1 w-full px-2">
-          <Search className="h-4 w-4 text-muted-foreground" />
+          <Search className="h-4 w-4 text-slate-400" />
           <Input
             placeholder="Search by name or batch number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 px-0"
+            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 px-0 text-slate-900 placeholder:text-slate-400"
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[150px] border-0 bg-transparent shadow-none focus:ring-0 h-8">
+            <SelectTrigger className="w-full sm:w-[150px] border-0 bg-transparent shadow-none focus:ring-0 h-8 text-slate-700">
               <SelectValue placeholder="Status/Stock" />
             </SelectTrigger>
             <SelectContent>
@@ -210,7 +216,7 @@ export default function ProductsPage() {
           </Select>
           
           <Select value={visibilityFilter} onValueChange={setVisibilityFilter}>
-            <SelectTrigger className="w-full sm:w-[150px] border-0 bg-transparent shadow-none focus:ring-0 h-8">
+            <SelectTrigger className="w-full sm:w-[150px] border-0 bg-transparent shadow-none focus:ring-0 h-8 text-slate-700">
               <SelectValue placeholder="Visibility" />
             </SelectTrigger>
             <SelectContent>
@@ -230,17 +236,38 @@ export default function ProductsPage() {
             key={product.id}
             product={product}
             onEdit={() => router.push(`/dashboard/products/${product.id}/edit`)}
-            onDelete={() => handleDelete(product.id)}
+            onDelete={() => handleDelete(product.id, product.name)}
             onToggleVisibility={(flag, value) => handleToggleVisibility(product.id, flag, value)}
           />
         ))}
       </div>
 
       {filteredProducts.length === 0 && !loading && (
-        <Card className="p-8 text-center text-muted-foreground">
+        <Card className="p-8 text-center text-slate-500 bg-white border border-slate-200 shadow-sm">
           No products found
         </Card>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteConfirm.open} onOpenChange={(open) => setDeleteConfirm(prev => ({ ...prev, open }))}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-slate-900">Confirm Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 text-slate-600 text-sm">
+            <p>Are you sure you want to delete the product <strong className="text-slate-900">{deleteConfirm.name}</strong>?</p>
+            <p className="mt-2 text-red-600">This action cannot be undone.</p>
+          </div>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirm(prev => ({ ...prev, open: false }))}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

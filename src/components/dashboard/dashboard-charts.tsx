@@ -18,7 +18,7 @@ import {
     Area,
 } from "recharts"
 
-const COLORS = ["#8b5cf6", "#3b82f6", "#f97316", "#14b8a6"] // Purple, Blue, Orange, Teal
+const COLORS = ["#059669", "#2563eb", "#d97706", "#475569"] // Emerald, Blue, Amber, Slate
 
 interface SalesOverviewProps {
     data: { name: string; value: number }[]
@@ -26,10 +26,10 @@ interface SalesOverviewProps {
 
 export function SalesOverviewChart({ data }: SalesOverviewProps) {
     return (
-        <Card className="border shadow-sm bg-card h-full">
+        <Card className="border border-slate-200 shadow-sm bg-white h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">Sales Overview</CardTitle>
-                <p className="text-sm text-muted-foreground">Last 30 Days Performance</p>
+                <CardTitle className="text-lg font-semibold text-slate-900">Sales Overview</CardTitle>
+                <p className="text-sm text-slate-500">Last 30 Days Performance</p>
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
@@ -37,31 +37,31 @@ export function SalesOverviewChart({ data }: SalesOverviewProps) {
                         <AreaChart data={data}>
                             <defs>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1} />
-                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                    <stop offset="5%" stopColor="#059669" stopOpacity={0.1} />
+                                    <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis
                                 dataKey="name"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                                tick={{ fill: '#64748b', fontSize: 12 }}
                                 dy={10}
                             />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                                tick={{ fill: '#64748b', fontSize: 12 }}
                             />
                             <Tooltip
-                                contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }}
+                                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#ffffff', color: '#0f172a' }}
                                 formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Sales']}
                             />
                             <Area
                                 type="monotone"
                                 dataKey="value"
-                                stroke="#8b5cf6"
+                                stroke="#059669"
                                 strokeWidth={3}
                                 fillOpacity={1}
                                 fill="url(#colorValue)"
@@ -80,10 +80,10 @@ interface RevenueBreakdownProps {
 
 export function RevenueBreakdownChart({ data }: RevenueBreakdownProps) {
     return (
-        <Card className="border shadow-sm bg-card h-full">
+        <Card className="border border-slate-200 shadow-sm bg-white h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">Revenue by Category</CardTitle>
-                <p className="text-sm text-muted-foreground">Distribution across product types</p>
+                <CardTitle className="text-lg font-semibold text-slate-900">Revenue by Category</CardTitle>
+                <p className="text-sm text-slate-500">Distribution across product types</p>
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
@@ -103,7 +103,7 @@ export function RevenueBreakdownChart({ data }: RevenueBreakdownProps) {
                                 ))}
                             </Pie>
                             <Tooltip
-                                contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }}
+                                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#ffffff', color: '#0f172a' }}
                                 formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
                             />
                         </PieChart>
@@ -113,7 +113,7 @@ export function RevenueBreakdownChart({ data }: RevenueBreakdownProps) {
                     {data.map((entry, index) => (
                         <div key={index} className="flex items-center gap-2">
                             <div className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                            <span className="text-xs text-muted-foreground">{entry.name}</span>
+                            <span className="text-xs text-slate-500 font-medium">{entry.name}</span>
                         </div>
                     ))}
                 </div>
@@ -128,30 +128,30 @@ interface TopSellingProps {
 
 export function TopSellingChart({ data }: TopSellingProps) {
     return (
-        <Card className="border shadow-sm bg-card h-full">
+        <Card className="border border-slate-200 shadow-sm bg-white h-full">
             <CardHeader>
-                <CardTitle className="text-lg font-semibold text-foreground">Top Selling Medicines</CardTitle>
-                <p className="text-sm text-muted-foreground">Highest performing products</p>
+                <CardTitle className="text-lg font-semibold text-slate-900">Top Selling Medicines</CardTitle>
+                <p className="text-sm text-slate-500">Highest performing products</p>
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="var(--border)" />
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
                             <XAxis type="number" hide />
                             <YAxis
                                 dataKey="name"
                                 type="category"
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
+                                tick={{ fill: '#64748b', fontSize: 12 }}
                                 width={80}
                             />
                             <Tooltip
-                                cursor={{ fill: 'transparent' }}
-                                contentStyle={{ borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'var(--card)', color: 'var(--card-foreground)' }}
+                                cursor={{ fill: '#f8fafc' }}
+                                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#ffffff', color: '#0f172a' }}
                             />
-                            <Bar dataKey="sales" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+                            <Bar dataKey="sales" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={20} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
