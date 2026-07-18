@@ -80,12 +80,12 @@ export async function getCroppedImg(
     const tempCtx = tempCanvas.getContext('2d')
     tempCtx?.putImageData(data, 0, 0)
 
-    // set canvas width to final fixed dimension (800x600) to ensure uniform banner sizes
-    canvas.width = 800
-    canvas.height = 600
+    // Use the cropped area's exact dimensions to preserve the aspect ratio
+    canvas.width = pixelCrop.width
+    canvas.height = pixelCrop.height
 
-    // draw the cropped area scaled to 800x600
-    ctx.drawImage(tempCanvas, 0, 0, 800, 600)
+    // draw the cropped area
+    ctx.drawImage(tempCanvas, 0, 0)
 
     // As Blob
     return new Promise((resolve, reject) => {

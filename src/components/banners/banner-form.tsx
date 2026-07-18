@@ -32,6 +32,14 @@ const POSITIONS = [
 const STATUSES = ['Draft', 'Scheduled', 'Active', 'Expired', 'Archived']
 const REDIRECT_TYPES = ['None', 'Internal Page', 'External URL', 'Product', 'Category', 'Brand', 'Offer']
 
+const ASPECT_RATIOS: Record<string, number> = {
+    'HOME_HERO': 21 / 9,
+    'HOME_MIDDLE': 32 / 9,
+    'HOME_BOTTOM': 21 / 9,
+    'CATEGORY_HERO': 21 / 9,
+    'CATEGORY_MIDDLE': 21 / 9,
+}
+
 export default function BannerForm({ onSuccess, onCancel, initialData }: BannerFormProps) {
     const [formData, setFormData] = useState<Partial<Banner>>({
         name: initialData?.name || '',
@@ -185,9 +193,13 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                         <Input
                             id="displayOrder"
                             type="number"
-                            value={formData.displayOrder ?? 0}
-                            onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
-                            placeholder="0"
+                            min="1"
+                            value={formData.displayOrder || 1}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setFormData({ ...formData, displayOrder: isNaN(val) || val < 1 ? 1 : val })
+                            }}
+                            placeholder="1"
                         />
                     </div>
                     <div className="space-y-2">
@@ -332,9 +344,9 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                     {!isNewImage && imageSrc ? (
                         <div className="space-y-4">
                             <Label className="text-muted-foreground">Desktop & Mobile Preview</Label>
-                            <div className="relative group rounded-xl overflow-hidden border">
+                            <div className="relative group rounded-xl overflow-hidden border" style={{ aspectRatio: ASPECT_RATIOS[formData.position || 'HOME_HERO'] || (21/9) }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={imageSrc} alt="Preview" className="w-full aspect-[21/9] object-cover" />
+                                <img src={imageSrc} alt="Preview" className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                                     <Button
                                         type="button"
@@ -371,12 +383,12 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                         </div>
                     ) : (
                         <div className="space-y-4 animate-slide-up">
-                            <div className="relative w-full aspect-[21/9] bg-black/5 rounded-xl overflow-hidden ring-1 ring-border shadow-inner">
+                            <div className="relative w-full bg-black/5 rounded-xl overflow-hidden ring-1 ring-border shadow-inner" style={{ aspectRatio: ASPECT_RATIOS[formData.position || 'HOME_HERO'] || (21/9) }}>
                                 <Cropper
                                     image={imageSrc}
                                     crop={crop}
                                     zoom={zoom}
-                                    aspect={21 / 9}
+                                    aspect={ASPECT_RATIOS[formData.position || 'HOME_HERO'] || (21/9)}
                                     onCropChange={setCrop}
                                     onCropComplete={onCropComplete}
                                     onZoomChange={setZoom}
