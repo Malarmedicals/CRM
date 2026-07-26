@@ -45,6 +45,9 @@ export interface MedicalInfo {
   drugInteractions?: string
   indications?: string
   contraindications?: string
+  consumingMethod?: string
+  consumingTiming?: string
+  consumingFrequency?: string
 }
 
 export interface ProductCompliance {

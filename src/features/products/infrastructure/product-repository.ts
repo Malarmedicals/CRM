@@ -9,6 +9,9 @@ const STOCK_MOVEMENTS_TABLE = 'stock_movements'
 const safeDate = (date: any): Date => (date ? new Date(date) : new Date())
 
 export function mapDbRowToProduct(doc: any): Product {
+  const parseJson = (val: any) => (typeof val === 'string' ? (() => { try { return JSON.parse(val); } catch(e) { return {}; } })() : (val || {}));
+  const medical = parseJson(doc.medical_info);
+
   return {
     id: doc.id,
     name: doc.name || '',
@@ -24,14 +27,26 @@ export function mapDbRowToProduct(doc: any): Product {
     images: doc.images || [],
     primaryImage: doc.image_url,
     additionalImages: doc.additional_images || [],
-    brandName: doc.brand,
+    brandName: doc.brand || doc.brandName || doc.manufacturer || '',
     lastRestocked: doc.last_restocked ? new Date(doc.last_restocked) : undefined,
     minStockLevel: doc.min_stock_level,
     stockStatus: doc.stock_status || 'in-stock',
-    medicalInfo: doc.medical_info || {},
-    compliance: doc.compliance || {},
-    shipping: doc.shipping || {},
-    seo: doc.seo || {},
+    medicalInfo: {
+      ...medical,
+      composition: medical.composition || doc.composition || doc.salt_name || doc.saltName || '',
+      strength: medical.strength || medical.dosage || doc.dosage || doc.strength || '',
+      dosageForm: medical.dosageForm || medical.dosage_form || medical.form || doc.form || doc.dosageForm || doc.dosage_form || '',
+      packSize: medical.packSize || medical.pack_size || doc.packSize || doc.pack_size || '',
+      consumingMethod: medical.consumingMethod || medical.consuming_method || medical.consumingOption || medical.consuming_option || doc.consumingMethod || doc.consuming_method || doc.consumingOption || doc.consuming_option || '',
+      consumingTiming: medical.consumingTiming || medical.consuming_timing || doc.consumingTiming || doc.consuming_timing || '',
+      consumingFrequency: medical.consumingFrequency || medical.consuming_frequency || doc.consumingFrequency || doc.consuming_frequency || '',
+      usageInstructions: medical.usageInstructions || medical.usage_instructions || doc.usage_instructions || '',
+      sideEffects: medical.sideEffects || medical.side_effects || doc.side_effects || '',
+      storageInstructions: medical.storageInstructions || medical.storage_instructions || doc.storage_instructions || '',
+    },
+    compliance: parseJson(doc.compliance),
+    shipping: parseJson(doc.shipping),
+    seo: parseJson(doc.seo),
     createdAt: safeDate(doc.created_at),
     updatedAt: safeDate(doc.updated_at),
     status: doc.is_active ? 'published' : 'draft',

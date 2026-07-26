@@ -92,6 +92,9 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
         usageInstructions: product.medicalInfo?.usageInstructions || '',
         sideEffects: product.medicalInfo?.sideEffects || '',
         storageInstructions: product.medicalInfo?.storageInstructions || '',
+        consumingMethod: product.medicalInfo?.consumingMethod || '',
+        consumingTiming: product.medicalInfo?.consumingTiming || '',
+        consumingFrequency: product.medicalInfo?.consumingFrequency || '',
       },
       compliance: {
         prescriptionRequired: product.compliance?.prescriptionRequired ?? !!product.isSensitive,
@@ -590,6 +593,41 @@ export default function ProductForm({ product, onClose, onSuccess }: ProductForm
                   <div className="space-y-2">
                     <Label>Pack Size</Label>
                     <Input value={formData.medicalInfo?.packSize || ''} onChange={(e) => handleNestedChange('medicalInfo', 'packSize', e.target.value)} placeholder="e.g. 10 Tablets / 100ml" />
+                  </div>
+                </div>
+                <div className="border rounded-md p-4 bg-muted/20 space-y-4">
+                  <h4 className="font-medium text-sm text-foreground flex items-center gap-2">
+                    <Info className="h-4 w-4 text-primary" />
+                    Consuming Option & Administration
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Consuming Option / Route</Label>
+                      <Select value={formData.medicalInfo?.consumingMethod || undefined} onValueChange={(v) => handleNestedChange('medicalInfo', 'consumingMethod', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select Option" /></SelectTrigger>
+                        <SelectContent>
+                          {['Oral (By Mouth)', 'Topical (External Use)', 'Injection (IV / IM / SC)', 'Sublingual (Under Tongue)', 'Inhalation (Oral / Nasal)', 'Ophthalmic (Eye Drops)', 'Otic (Ear Drops)', 'External Application', 'Drops', 'As Directed by Physician'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Consuming Timing</Label>
+                      <Select value={formData.medicalInfo?.consumingTiming || undefined} onValueChange={(v) => handleNestedChange('medicalInfo', 'consumingTiming', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select Timing" /></SelectTrigger>
+                        <SelectContent>
+                          {['Before Food (Empty Stomach)', 'After Food (Post Meal)', 'With Food / During Meal', 'Before Sleep (Bedtime)', 'Anytime / Unspecified', 'As Directed by Physician'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Consuming Frequency</Label>
+                      <Select value={formData.medicalInfo?.consumingFrequency || undefined} onValueChange={(v) => handleNestedChange('medicalInfo', 'consumingFrequency', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select Frequency" /></SelectTrigger>
+                        <SelectContent>
+                          {['Once Daily (OD)', 'Twice Daily (BID)', 'Thrice Daily (TID)', 'Four Times Daily (QID)', 'As Needed (PRN)', 'Weekly', 'As Directed by Physician'].map(f => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
