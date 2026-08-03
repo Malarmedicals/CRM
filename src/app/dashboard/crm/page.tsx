@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card'
 import EmailCampaigns from '@/components/crm/email-campaigns'
 import CustomerSegmentation from '@/components/crm/customer-segmentation'
 import WhatsAppNotifications from '@/components/crm/whatsapp-notifications'
+import EnquiriesDashboard from '@/components/crm/enquiries-dashboard'
 import { BarChart3, Users, Mail, MessageSquare, Zap, Activity, Clock, TrendingUp, LayoutDashboard, Send, Calendar } from 'lucide-react'
 
 export default function MarketingCenterPage() {
@@ -12,12 +13,15 @@ export default function MarketingCenterPage() {
     <div className="max-w-[1600px] mx-auto space-y-6 p-6 md:p-8 bg-slate-50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Marketing Center</h1>
-        <p className="text-slate-500">Manage customer relationships, marketing campaigns, and engagement automations.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Marketing & CRM Center</h1>
+        <p className="text-slate-500">Manage customer relationships, live customer enquiries, marketing campaigns, and engagement automations.</p>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="enquiries" className="space-y-6">
         <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 bg-white border border-slate-200 rounded-lg gap-1 shadow-sm">
+          <TabsTrigger value="enquiries" className="flex items-center gap-2 px-4 py-2 text-slate-600 data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-semibold">
+            <MessageSquare className="h-4 w-4" /> Live Enquiries
+          </TabsTrigger>
           <TabsTrigger value="overview" className="flex items-center gap-2 px-4 py-2 text-slate-600 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">
             <LayoutDashboard className="h-4 w-4" /> Overview
           </TabsTrigger>
@@ -34,6 +38,11 @@ export default function MarketingCenterPage() {
             <BarChart3 className="h-4 w-4" /> Analytics
           </TabsTrigger>
         </TabsList>
+
+        {/* ENQUIRIES TAB */}
+        <TabsContent value="enquiries" className="space-y-6 outline-none">
+          <EnquiriesDashboard />
+        </TabsContent>
 
         {/* OVERVIEW TAB */}
         <TabsContent value="overview" className="space-y-6 outline-none">
