@@ -196,8 +196,13 @@ export default function PrescriptionsPage() {
                                                 <div className="font-medium text-slate-900">
                                                     {p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                                 </div>
-                                                <div className="text-xs text-slate-500 mt-1">
-                                                    {p.createdAt ? new Date(p.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                                <div className="text-xs text-slate-500 mt-1 flex items-center gap-2">
+                                                    <span>{p.createdAt ? new Date(p.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                                                    {p.medicationNotes?.uploadType === 'list' || p.fileType === 'text/plain' ? (
+                                                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0 leading-tight bg-blue-50 text-blue-700 border-blue-200 uppercase tracking-wider">List</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-[10px] h-4 px-1.5 py-0 leading-tight bg-slate-100 text-slate-600 border-slate-200 uppercase tracking-wider">File</Badge>
+                                                    )}
                                                 </div>
                                             </td>
 

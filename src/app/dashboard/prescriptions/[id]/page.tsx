@@ -217,6 +217,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
     }
 
     const isPdf = prescription.fileType?.includes('pdf') || prescription.fileUrl.toLowerCase().includes('.pdf')
+    const isText = prescription.fileType?.includes('text/plain') || prescription.fileUrl.toLowerCase().includes('.txt')
 
     return (
         <div className="h-[calc(100vh-2rem)] flex flex-col gap-4 overflow-hidden">
@@ -288,7 +289,11 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                     </div>
 
                     <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-950 p-4 relative">
-                        {isPdf ? (
+                        {isText ? (
+                            <div className="w-full h-full bg-white text-slate-900 p-8 rounded shadow-sm overflow-auto text-base whitespace-pre-wrap font-mono leading-relaxed max-w-3xl mx-auto">
+                                {prescription.medicationNotes?.customerNotes || 'No content available'}
+                            </div>
+                        ) : isPdf ? (
                             <iframe
                                 src={prescription.fileUrl}
                                 className="w-full h-full border-none"
