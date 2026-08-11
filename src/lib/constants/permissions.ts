@@ -11,7 +11,8 @@ export const PERMISSION_MODULES = [
   'categories',
   'brands',
   'reports',
-  'settings'
+  'settings',
+  'blog'
 ] as const;
 
 export type PermissionModule = typeof PERMISSION_MODULES[number];
@@ -29,7 +30,8 @@ export const PERMISSIONS = {
   categories: ['view', 'create', 'edit', 'delete'],
   brands: ['view', 'create', 'edit', 'delete'],
   reports: ['view', 'export'],
-  settings: ['view', 'update']
+  settings: ['view', 'update'],
+  blog: ['view', 'create', 'edit', 'delete', 'publish', 'manage_categories', 'manage_tags', 'manage_seo']
 } as const;
 
 export type PermissionKey = 
@@ -45,7 +47,8 @@ export type PermissionKey =
   | `categories.${typeof PERMISSIONS['categories'][number]}`
   | `brands.${typeof PERMISSIONS['brands'][number]}`
   | `reports.${typeof PERMISSIONS['reports'][number]}`
-  | `settings.${typeof PERMISSIONS['settings'][number]}`;
+  | `settings.${typeof PERMISSIONS['settings'][number]}`
+  | `blog.${typeof PERMISSIONS['blog'][number]}`;
 
 export const getAllPermissions = (): string[] => {
   const all: string[] = [];

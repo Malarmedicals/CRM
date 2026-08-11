@@ -7,7 +7,7 @@ import { authService } from '@/features/auth'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet'
-import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, PanelLeftClose, PanelRightClose, ChevronDown, Warehouse, FileText, Shield, MessageSquare } from 'lucide-react'
+import { BarChart3, Package, Users, ShoppingCart, Mail, LogOut, PanelLeftClose, PanelRightClose, ChevronDown, Warehouse, FileText, Shield, MessageSquare, BookOpen } from 'lucide-react'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { PermissionProvider, usePermissions } from '@/components/auth/permission-provider'
 import type { PermissionKey } from '@/lib/constants/permissions'
@@ -30,6 +30,7 @@ const menuItems: MenuItem[] = [
       { href: '/dashboard/categories', label: 'Category Management', requiredPermission: 'categories.view' },
       { href: '/dashboard/banners', label: 'Banner Management', requiredPermission: 'banners.view' },
       { href: '/dashboard/seo-content', label: 'SEO Content Blocks' },
+      { href: '/dashboard/blog', label: 'Blog & Health Content', requiredPermission: 'blog.view' },
     ]
   },
   { href: '/dashboard/inventory', label: 'Inventory', icon: Warehouse, requiredPermission: 'inventory.view' },

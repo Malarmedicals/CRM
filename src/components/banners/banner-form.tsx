@@ -22,7 +22,7 @@ interface BannerFormProps {
     initialData?: Banner
 }
 
-const POSITIONS = ['TOP', 'MIDDLE', 'BOTTOM']
+const POSITIONS = ['TOP', 'MIDDLE', 'BOTTOM', 'BLOG']
 
 const REDIRECT_TYPES = ['None', 'Internal Page', 'External URL', 'Product', 'Category', 'Brand', 'Offer']
 
@@ -30,6 +30,7 @@ const ASPECT_RATIOS: Record<string, number> = {
     'TOP': 21 / 9,
     'MIDDLE': 32 / 9,
     'BOTTOM': 32 / 9,
+    'BLOG': 32 / 9,
     'HOME_HERO': 21 / 9,
     'HOME_MIDDLE': 32 / 9,
     'HOME_BOTTOM': 32 / 9,
@@ -212,7 +213,7 @@ export default function BannerForm({ onSuccess, onCancel, initialData }: BannerF
                     <div className="space-y-2">
                         <Label htmlFor="redirectTarget">Redirect Target</Label>
                         {formData.redirectType === 'None' ? (
-                            <Input disabled placeholder="No redirect" />
+                            <Input value="" disabled placeholder="No redirect" />
                         ) : formData.redirectType === 'External URL' ? (
                             <Input 
                                 value={formData.redirectTarget || ''} 
