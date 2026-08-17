@@ -21,10 +21,12 @@ export default function Home() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
+        await fetch('/api/auth/session', { method: 'POST', body: JSON.stringify({ action: 'login' }) })
         router.push('/dashboard')
       } else {
+        await fetch('/api/auth/session', { method: 'POST', body: JSON.stringify({ action: 'logout' }) })
         setLoading(false)
       }
     })

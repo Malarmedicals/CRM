@@ -1,8 +1,35 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
     try {
         const { to, message } = await request.json()
+
+        const authHeader = request.headers.get('Authorization')
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return NextResponse.json({ error: "Missing or invalid authorization header" }, { status: 401 })
+        }
+        const token = authHeader.replace('Bearer ', '')
+
+        if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+          throw new Error("Missing Supabase admin configuration")
+        }
+
+        const supabaseAdmin = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY,
+          { auth: { autoRefreshToken: false, persistSession: false } }
+        )
+
+        const { data: { user: requestingUser }, error: userError } = await supabaseAdmin.auth.getUser(token)
+        if (userError || !requestingUser) {
+          return NextResponse.json({ error: "Unauthorized or invalid token" }, { status: 401 })
+        }
+
+        const { data: currentUserRow } = await supabaseAdmin.from('crm_users').select('role').eq('uid', requestingUser.id).single()
+        if (!currentUserRow || !['admin', 'super administrator', 'manager', 'Super Administrator', 'Admin', 'Manager'].includes(currentUserRow.role)) {
+          return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 })
+        }
 
         if (!to || !message) {
             return NextResponse.json(

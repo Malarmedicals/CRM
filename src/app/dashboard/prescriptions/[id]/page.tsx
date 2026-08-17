@@ -295,7 +295,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                             </div>
                         ) : isPdf ? (
                             <iframe
-                                src={prescription.fileUrl}
+                                src={`/api/prescriptions/file?url=${encodeURIComponent(prescription.fileUrl)}`}
                                 className="w-full h-full border-none"
                                 title="PDF Viewer"
                             />
@@ -306,7 +306,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                             >
                                 {/* Using standard img tag for direct control in this specific viewer context */}
                                 <img
-                                    src={prescription.fileUrl}
+                                    src={`/api/prescriptions/file?url=${encodeURIComponent(prescription.fileUrl)}`}
                                     alt="Prescription"
                                     className="max-w-full max-h-full object-contain shadow-xl"
                                 />

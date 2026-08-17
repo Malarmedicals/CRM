@@ -27,11 +27,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Fetch all products once to prevent N+1 queries
+    const allProducts = await productService.getAllProducts()
+    const productMap = new Map(allProducts.map(p => [p.id, p]))
+
     // Verify products exist and check stock
     for (const item of products) {
-      const product = await productService.getAllProducts().then(products =>
-        products.find(p => p.id === item.productId)
-      )
+      const product = productMap.get(item.productId)
 
       if (!product) {
         return NextResponse.json(
@@ -59,9 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Update product stock
     for (const item of products) {
-      const product = await productService.getAllProducts().then(products =>
-        products.find(p => p.id === item.productId)
-      )
+      const product = productMap.get(item.productId)
       if (product) {
         await productService.updateProduct(item.productId, {
           stockQuantity: product.stockQuantity - item.quantity,

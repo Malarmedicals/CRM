@@ -3,11 +3,15 @@ import { orderService } from '@/features/orders'
 import { productService } from '@/features/products'
 import { leadService } from '@/features/crm'
 
+import { timingSafeEqual } from 'crypto'
+
 // Verify webhook signature
 function verifyWebhook(request: NextRequest): boolean {
   const signature = request.headers.get('x-webhook-signature')
   const expectedSignature = process.env.WEBHOOK_SECRET
-  return signature === expectedSignature
+  if (!signature || !expectedSignature) return false;
+  if (signature.length !== expectedSignature.length) return false;
+  return timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
 }
 
 // POST /api/integration/webhooks - Handle webhooks from e-commerce
