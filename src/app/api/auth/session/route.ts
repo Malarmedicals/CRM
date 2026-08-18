@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { action } = await request.json();
+    const { action, token } = await request.json();
 
     const response = NextResponse.json({ success: true });
 
-    if (action === 'login') {
-      // Set a generic http-only cookie to indicate the user is logged into the CRM
+    if (action === 'login' && token) {
+      // Set the HTTP-only cookie with the Supabase access token
       response.cookies.set({
         name: 'crm-auth-session',
-        value: 'true',
+        value: token,
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

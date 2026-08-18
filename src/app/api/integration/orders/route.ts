@@ -1,12 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { orderService } from '@/features/orders'
 import { productService } from '@/features/products'
+import crypto from 'crypto'
 
 
 // Verify API key middleware
 function verifyApiKey(request: NextRequest): boolean {
-  const apiKey = request.headers.get('x-api-key')
-  return apiKey === process.env.INTEGRATION_API_KEY
+  const apiKey = request.headers.get('x-api-key') || ''
+  const expectedKey = process.env.INTEGRATION_API_KEY
+  
+  if (!expectedKey || apiKey.length !== expectedKey.length) {
+    return false
+  }
+  
+  try {
+    return crypto.timingSafeEqual(Buffer.from(apiKey), Buffer.from(expectedKey))
+  } catch (e) {
+    return false
+  }
 }
 
 // POST /api/integration/orders - Create order from e-commerce

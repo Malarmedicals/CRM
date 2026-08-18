@@ -43,6 +43,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
     const [prescription, setPrescription] = useState<Prescription | null>(null)
     const [loading, setLoading] = useState(true)
     const [medicines, setMedicines] = useState<PrescriptionItem[]>([])
+    const [authToken, setAuthToken] = useState<string>('')
 
     // Image Viewer State
     const [zoom, setZoom] = useState(1)
@@ -68,6 +69,11 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
 
     useEffect(() => {
         loadPrescription()
+        import('@/lib/supabase/client').then(({ supabase }) => {
+            supabase.auth.getSession().then(({ data }) => {
+                if (data.session) setAuthToken(data.session.access_token);
+            })
+        })
     }, [id])
 
     // Reset checklist when confirmed
@@ -294,22 +300,26 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                                 {prescription.medicationNotes?.customerNotes || 'No content available'}
                             </div>
                         ) : isPdf ? (
-                            <iframe
-                                src={`/api/prescriptions/file?url=${encodeURIComponent(prescription.fileUrl)}`}
-                                className="w-full h-full border-none"
-                                title="PDF Viewer"
-                            />
+                            authToken ? (
+                                <iframe
+                                    src={`/api/prescriptions/file?url=${encodeURIComponent(prescription.fileUrl)}&token=${authToken}`}
+                                    className="w-full h-full border-none"
+                                    title="PDF Viewer"
+                                />
+                            ) : null
                         ) : (
                             <div
                                 className="transition-transform duration-200 ease-out origin-center"
                                 style={{ transform: `scale(${zoom}) rotate(${rotation}deg)` }}
                             >
                                 {/* Using standard img tag for direct control in this specific viewer context */}
-                                <img
-                                    src={`/api/prescriptions/file?url=${encodeURIComponent(prescription.fileUrl)}`}
-                                    alt="Prescription"
-                                    className="max-w-full max-h-full object-contain shadow-xl"
-                                />
+                                {authToken && (
+                                    <img
+                                        src={`/api/prescriptions/file?url=${encodeURIComponent(prescription.fileUrl)}&token=${authToken}`}
+                                        alt="Prescription"
+                                        className="max-w-full max-h-full object-contain shadow-xl"
+                                    />
+                                )}
                             </div>
                         )}
                     </div>

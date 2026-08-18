@@ -23,7 +23,7 @@ export default function Home() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        await fetch('/api/auth/session', { method: 'POST', body: JSON.stringify({ action: 'login' }) })
+        await fetch('/api/auth/session', { method: 'POST', body: JSON.stringify({ action: 'login', token: session.access_token }) })
         router.push('/dashboard')
       } else {
         await fetch('/api/auth/session', { method: 'POST', body: JSON.stringify({ action: 'logout' }) })

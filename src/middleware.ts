@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 // In-memory store for rate limiting (Note: In Vercel this is per-isolate. For global limit use Redis/Upstash)
 const rateLimit = new Map<string, { count: number, resetTime: number }>();
@@ -7,7 +8,7 @@ const rateLimit = new Map<string, { count: number, resetTime: number }>();
 const WINDOW_MS = 60 * 1000; // 1 minute
 const MAX_REQUESTS_API = 100;
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Only apply to API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
@@ -30,12 +31,42 @@ export function middleware(request: NextRequest) {
         );
       }
     }
+
+    // API route defense-in-depth
+    const isAuthRoute = request.nextUrl.pathname.startsWith('/api/auth');
+    const isIntegrationRoute = request.nextUrl.pathname.startsWith('/api/integration');
+    
+    if (!isAuthRoute && !isIntegrationRoute) {
+      const sessionCookie = request.cookies.get('crm-auth-session');
+      if (!sessionCookie || !sessionCookie.value || sessionCookie.value === 'true') {
+        return new NextResponse(
+          JSON.stringify({ error: 'Unauthorized: Missing or invalid session cookie' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+    }
   }
 
   // Dashboard route protection
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    const hasSession = request.cookies.has('crm-auth-session');
-    if (!hasSession) {
+    const sessionCookie = request.cookies.get('crm-auth-session');
+    if (!sessionCookie || !sessionCookie.value || sessionCookie.value === 'true') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      
+      const { data: { user }, error } = await supabase.auth.getUser(sessionCookie.value);
+      
+      if (error || !user) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    } catch (err) {
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
