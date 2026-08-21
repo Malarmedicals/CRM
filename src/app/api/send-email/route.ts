@@ -63,10 +63,10 @@ export async function POST(request: Request) {
             console.log('Debug Info:')
             console.log(`- GMAIL_USER: ${GMAIL_USER ? 'Present' : 'MISSING'}`)
             console.log(`- GMAIL_APP_PASSWORD: ${GMAIL_APP_PASSWORD ? 'Present' : 'MISSING'}`)
-            console.log(`To: ${recipients.join(', ')}`)
-            console.log(`Subject: ${subject}`)
-            console.log('--- Content ---')
-            console.log(html)
+            console.log(`To: ${recipients.length} recipient(s)`)
+            console.log(`Subject: ${subject.substring(0, 30)}${subject.length > 30 ? '...' : ''}`)
+            console.log(`Timestamp: ${new Date().toISOString()}`)
+            console.log('--- Email Content Omitted for Privacy ---')
             console.log('---------------------------------------------------')
 
             return NextResponse.json({

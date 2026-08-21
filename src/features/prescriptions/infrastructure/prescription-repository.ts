@@ -31,9 +31,10 @@ export const prescriptionRepository = {
     return mapDbRowToPrescription(data)
   },
 
-  async updateStatus(id: string, status: string, notes?: string): Promise<void> {
+  async updateStatus(id: string, status: string, notes?: string, pharmacistId?: string): Promise<void> {
     const updateData: any = { status, updated_at: new Date().toISOString() }
     if (notes) updateData.notes = notes
+    if (pharmacistId) updateData.pharmacist_id = pharmacistId
     const { error } = await supabase.from(TABLE).update(updateData).eq('id', id)
     if (error) throw error
   },

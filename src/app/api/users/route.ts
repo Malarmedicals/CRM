@@ -41,6 +41,11 @@ export async function POST(request: Request) {
     const currentRole = currentUserRow.role
     const targetRole = role || 'customer'
 
+    // STRICT ROLE GUARD
+    if (currentRole !== 'Super Administrator' && currentRole !== 'admin') {
+      return NextResponse.json({ error: "Only administrators can create users." }, { status: 403 })
+    }
+
     if (targetRole === 'Super Administrator' && currentRole !== 'Super Administrator') {
       return NextResponse.json({ error: "Only a Super Administrator can create another Super Administrator." }, { status: 403 })
     }

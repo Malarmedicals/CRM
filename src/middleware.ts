@@ -1,34 +1,84 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Redis } from '@upstash/redis'
+import { Ratelimit } from '@upstash/ratelimit'
 
-// In-memory store for rate limiting (Note: In Vercel this is per-isolate. For global limit use Redis/Upstash)
-const rateLimit = new Map<string, { count: number, resetTime: number }>();
+// Fallback in-memory store for rate limiting (used if Redis is not configured)
+const fallbackRateLimit = new Map<string, { count: number, resetTime: number }>();
 
 const WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS_API = 100;
+
+const LIMITS = {
+  email: 5,
+  whatsapp: 5,
+  users: 10,
+  default: 100
+};
+
+// Initialize Upstash Redis Ratelimits if credentials exist
+let redis: Redis | null = null;
+let limiters: Record<string, Ratelimit> = {};
+
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  
+  limiters = {
+    email: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(LIMITS.email, "1 m") }),
+    whatsapp: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(LIMITS.whatsapp, "1 m") }),
+    users: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(LIMITS.users, "1 m") }),
+    default: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(LIMITS.default, "1 m") }),
+  };
+}
 
 export async function middleware(request: NextRequest) {
   // Only apply to API routes
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const ip = request.ip || request.headers.get('x-forwarded-for') || '127.0.0.1';
-    const now = Date.now();
-    const windowStart = now - WINDOW_MS;
-
-    const record = rateLimit.get(ip);
     
-    if (!record || record.resetTime < now) {
-      // New record or window expired
-      rateLimit.set(ip, { count: 1, resetTime: now + WINDOW_MS });
-    } else {
-      // Increment count
-      record.count += 1;
-      
-      if (record.count > MAX_REQUESTS_API) {
+    // Determine which limit applies
+    let limitType = 'default';
+    let maxRequests = LIMITS.default;
+    
+    if (request.nextUrl.pathname.includes('/api/send-email')) {
+      limitType = 'email';
+      maxRequests = LIMITS.email;
+    } else if (request.nextUrl.pathname.includes('/api/send-whatsapp')) {
+      limitType = 'whatsapp';
+      maxRequests = LIMITS.whatsapp;
+    } else if (request.nextUrl.pathname.includes('/api/users')) {
+      limitType = 'users';
+      maxRequests = LIMITS.users;
+    }
+    
+    if (redis && limiters[limitType]) {
+      // Use Redis
+      const { success } = await limiters[limitType].limit(`${ip}_${limitType}`);
+      if (!success) {
         return new NextResponse(
           JSON.stringify({ error: 'Too Many Requests' }),
           { status: 429, headers: { 'Content-Type': 'application/json' } }
         );
+      }
+    } else {
+      // Use fallback
+      const now = Date.now();
+      const fallbackKey = `${ip}_${limitType}`;
+      const record = fallbackRateLimit.get(fallbackKey);
+      
+      if (!record || record.resetTime < now) {
+        fallbackRateLimit.set(fallbackKey, { count: 1, resetTime: now + WINDOW_MS });
+      } else {
+        record.count += 1;
+        if (record.count > maxRequests) {
+          return new NextResponse(
+            JSON.stringify({ error: 'Too Many Requests' }),
+            { status: 429, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       }
     }
 

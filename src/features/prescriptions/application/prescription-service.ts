@@ -31,9 +31,9 @@ export const prescriptionService = {
     }
   },
 
-  async updatePrescriptionStatus(id: string, status: string, notes?: string): Promise<void> {
+  async updatePrescriptionStatus(id: string, status: string, notes?: string, pharmacistId?: string): Promise<void> {
     try {
-      await prescriptionRepository.updateStatus(id, status, notes)
+      await prescriptionRepository.updateStatus(id, status, notes, pharmacistId)
       logger.info('Prescription status updated', { id, status })
     } catch (error: any) {
       logger.error('Failed to update prescription status', error, { id, status })

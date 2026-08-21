@@ -3,25 +3,82 @@ import { orderService } from '@/features/orders'
 import { productService } from '@/features/products'
 import { leadService } from '@/features/crm'
 
-import { timingSafeEqual } from 'crypto'
+import crypto from 'crypto'
 
-// Verify webhook signature
-function verifyWebhook(request: NextRequest): boolean {
-  const signature = request.headers.get('x-webhook-signature')
-  const expectedSignature = process.env.WEBHOOK_SECRET
-  if (!signature || !expectedSignature) return false;
-  if (signature.length !== expectedSignature.length) return false;
-  return timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+// In-memory idempotency cache (in production, use Redis or a DB table)
+const processedWebhooks = new Set<string>()
+
+// Verify webhook signature, replay protection, and idempotency
+async function verifyWebhook(request: NextRequest, rawBody: string): Promise<{ valid: boolean, error?: string }> {
+  const signatureHeader = request.headers.get('x-webhook-signature')
+  const idempotencyKey = request.headers.get('x-idempotency-key')
+  const secret = process.env.WEBHOOK_SECRET
+
+  if (!signatureHeader || !secret) {
+    return { valid: false, error: 'Missing signature or secret' }
+  }
+
+  if (!idempotencyKey) {
+    return { valid: false, error: 'Missing idempotency key' }
+  }
+
+  // Idempotency Check
+  if (processedWebhooks.has(idempotencyKey)) {
+    return { valid: false, error: 'Webhook already processed' }
+  }
+
+  // Parse signature header: t=<timestamp>,v1=<hmac>
+  const parts = signatureHeader.split(',')
+  let timestamp = ''
+  let signature = ''
+
+  for (const part of parts) {
+    const [key, value] = part.split('=')
+    if (key === 't') timestamp = value
+    if (key === 'v1') signature = value
+  }
+
+  if (!timestamp || !signature) {
+    return { valid: false, error: 'Invalid signature format' }
+  }
+
+  // Replay Protection (5 minutes)
+  const webhookAge = Date.now() - parseInt(timestamp, 10)
+  if (webhookAge > 5 * 60 * 1000 || webhookAge < -10000) {
+    return { valid: false, error: 'Webhook signature expired (Replay protection)' }
+  }
+
+  // Verify Signature
+  const payload = `${timestamp}.${rawBody}`
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex')
+
+  try {
+    const isValid = crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))
+    if (isValid) {
+      // Mark as processed (naive garbage collection for memory safety)
+      processedWebhooks.add(idempotencyKey)
+      if (processedWebhooks.size > 1000) processedWebhooks.clear()
+      return { valid: true }
+    }
+    return { valid: false, error: 'Invalid signature' }
+  } catch (e) {
+    return { valid: false, error: 'Signature comparison failed' }
+  }
 }
 
-// POST /api/integration/webhooks - Handle webhooks from e-commerce
 export async function POST(request: NextRequest) {
   try {
-    if (!verifyWebhook(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const rawBody = await request.text()
+    
+    const verification = await verifyWebhook(request, rawBody)
+    if (!verification.valid) {
+      return NextResponse.json({ error: verification.error || 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = JSON.parse(rawBody)
     const { event, data } = body
 
     switch (event) {

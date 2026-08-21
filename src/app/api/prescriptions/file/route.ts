@@ -16,9 +16,10 @@ export async function GET(request: Request) {
 
     const authHeader = request.headers.get('Authorization');
     let token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '') : null;
-    if (!token) {
-      token = searchParams.get('token');
-    }
+    
+    // In the CRM, authentication relies on the HttpOnly session cookie, not an Authorization header.
+    const sessionCookie = request.cookies.get('crm-auth-session')?.value;
+    token = token || sessionCookie;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -30,13 +31,20 @@ export async function GET(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
+    // Verify the user's token via Supabase Auth
     const { data: { user: requestingUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
     if (userError || !requestingUser) {
       return NextResponse.json({ error: "Unauthorized or invalid token" }, { status: 401 });
     }
 
-    const { data: currentUserRow } = await supabaseAdmin.from('crm_users').select('role').eq('uid', requestingUser.id).single();
-    if (!currentUserRow || currentUserRow.role === 'customer') {
+    // Verify CRM authorization role (admin/pharmacist/staff)
+    const { data: currentUserRow, error: roleError } = await supabaseAdmin
+      .from('crm_users')
+      .select('role')
+      .eq('uid', requestingUser.id)
+      .single();
+      
+    if (roleError || !currentUserRow || currentUserRow.role === 'customer') {
       return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 });
     }
 
@@ -45,8 +53,9 @@ export async function GET(request: Request) {
     const urlParts = fileUrl.split('/');
     const fileName = urlParts[urlParts.length - 1];
 
-    if (!fileName) {
-      return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
+    // Prevent directory traversal attacks
+    if (!fileName || fileName.includes('..') || fileName.includes('%2E') || fileName.includes('/')) {
+      return NextResponse.json({ error: "Invalid URL format or restricted path" }, { status: 400 });
     }
 
     // Generate a short-lived signed URL (60 seconds)

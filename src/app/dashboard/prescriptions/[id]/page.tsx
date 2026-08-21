@@ -44,6 +44,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
     const [loading, setLoading] = useState(true)
     const [medicines, setMedicines] = useState<PrescriptionItem[]>([])
     const [authToken, setAuthToken] = useState<string>('')
+    const [currentUserId, setCurrentUserId] = useState<string>('')
 
     // Image Viewer State
     const [zoom, setZoom] = useState(1)
@@ -71,7 +72,10 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
         loadPrescription()
         import('@/lib/supabase/client').then(({ supabase }) => {
             supabase.auth.getSession().then(({ data }) => {
-                if (data.session) setAuthToken(data.session.access_token);
+                if (data.session) {
+                    setAuthToken(data.session.access_token);
+                    setCurrentUserId(data.session.user.id);
+                }
             })
         })
     }, [id])
@@ -153,15 +157,20 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
 
         setProcessing(true)
         try {
-            // For now, hardcoding admin/pharmacist ID until auth context is fully ready
-            const pharmacistId = 'admin-user-id'
+            if (!currentUserId) {
+                toast.error('Authentication error: Unable to identify pharmacist')
+                setProcessing(false)
+                return
+            }
+            const pharmacistId = currentUserId
 
             // Assuming current date for prescription date if not set, or we could add a date picker
 
             await prescriptionService.updatePrescriptionStatus(
                 prescription.id,
                 'approved',
-                notes
+                notes,
+                pharmacistId
             )
 
             // Notify the customer
@@ -197,11 +206,17 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
 
         setProcessing(true)
         try {
-            const pharmacistId = 'admin-user-id'
+            if (!currentUserId) {
+                toast.error('Authentication error: Unable to identify pharmacist')
+                setProcessing(false)
+                return
+            }
+            const pharmacistId = currentUserId
             await prescriptionService.updatePrescriptionStatus(
                 prescription!.id,
                 'rejected',
-                rejectionReason
+                rejectionReason,
+                pharmacistId
             )
             toast.success('Prescription rejected')
             router.push('/dashboard/prescriptions')
