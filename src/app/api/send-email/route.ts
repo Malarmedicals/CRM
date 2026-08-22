@@ -146,30 +146,12 @@ export async function POST(request: Request) {
         console.error('Error type:', typeof error)
         console.error('Error constructor:', error?.constructor?.name)
         
-        // Extract error message
-        let errorMessage = error.message || 'Unknown error'
-        let errorDetails: any = {}
+        // Extract a safe error message
+        let errorMessage = 'An unexpected error occurred while sending email.'
         
-        // Nodemailer error structure
-        if (error.response) {
-            errorDetails = error.response
-            errorMessage = error.response.message || errorMessage
-        } else if (error.code) {
-            errorDetails = { code: error.code, command: error.command, response: error.response }
-            
-            // Provide helpful messages for common Gmail errors
-            if (error.code === 'EAUTH') {
-                errorMessage = 'Gmail authentication failed. Please check your Gmail App Password.'
-            } else if (error.code === 'ECONNECTION') {
-                errorMessage = 'Failed to connect to Gmail SMTP server.'
-            } else if (error.code === 'ETIMEDOUT') {
-                errorMessage = 'Connection to Gmail SMTP server timed out.'
-            }
-        }
-        
-        // Log full error for debugging
+        // Log full error for debugging server-side only
         try {
-            console.error('Error details (stringified):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+            console.error('Email send failed. Check SMTP configuration and logs.', error.code || error.message);
         } catch (e) {
             console.error('Could not stringify error:', e)
         }
@@ -178,18 +160,6 @@ export async function POST(request: Request) {
             { 
                 error: 'Failed to send email', 
                 details: errorMessage,
-                ...(process.env.NODE_ENV === 'development' && { 
-                    fullError: errorDetails,
-                    errorType: error?.constructor?.name,
-                    errorCode: error.code,
-                    troubleshooting: error.code === 'EAUTH' ? {
-                        step1: 'Go to https://myaccount.google.com/apppasswords',
-                        step2: 'Generate a new App Password for "Mail"',
-                        step3: 'Copy the 16-character password (no spaces)',
-                        step4: 'Update GMAIL_APP_PASSWORD in your .env file',
-                        step5: 'Restart your Next.js server'
-                    } : undefined
-                })
             },
             { status: 500 }
         )

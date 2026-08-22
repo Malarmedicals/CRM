@@ -10,9 +10,6 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     unoptimized: true, // Disable optimization to bypass hotlinking protection
     remotePatterns: [

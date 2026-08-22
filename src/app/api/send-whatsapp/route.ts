@@ -64,8 +64,8 @@ export async function POST(request: Request) {
             console.log(`- META_WHATSAPP_ACCESS_TOKEN: ${META_ACCESS_TOKEN ? 'Present' : 'MISSING'}`)
             console.log(`- META_WHATSAPP_PHONE_NUMBER_ID: ${META_PHONE_NUMBER_ID ? 'Present' : 'MISSING'}`)
             console.log(`- META_WHATSAPP_API_VERSION: ${META_API_VERSION}`)
-            console.log(`To: ${cleanPhone}`)
-            console.log(`Message: ${message}`)
+            console.log(`To: ${cleanPhone.substring(0, 3)}...${cleanPhone.substring(cleanPhone.length - 4)}`)
+            console.log(`Message Length: ${message.length} chars`)
             console.log('---------------------------------------------------')
 
             return NextResponse.json({
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
         console.log('Sending WhatsApp via Meta Cloud API:', {
             phoneNumberId: META_PHONE_NUMBER_ID,
-            to: formattedTo,
+            to: `${formattedTo.substring(0, 4)}...${formattedTo.substring(formattedTo.length - 4)}`,
             messageLength: message.length
         })
 
@@ -145,26 +145,8 @@ export async function POST(request: Request) {
             return NextResponse.json(
                 { 
                     error: 'Failed to send WhatsApp message', 
-                    details: errorMessage,
                     errorCode,
                     errorSubcode,
-                    ...(process.env.NODE_ENV === 'development' && {
-                        troubleshooting: errorCode === 131030 ? {
-                            step1: 'Add recipient to allowed list: Go to Meta Business Suite → WhatsApp → API Setup',
-                            step2: 'Click "Manage phone number list" or "Add phone number"',
-                            step3: 'Add the recipient phone number (format: 919876543210 without +)',
-                            step4: 'For production: Complete business verification to send to any number',
-                            step5: 'Note: For test numbers, you can only message numbers in the allowed list',
-                            step6: 'Alternative: Use WhatsApp message templates (approved templates can be sent to any number)'
-                        } : {
-                            step1: 'Verify your Meta WhatsApp Access Token is valid and not expired',
-                            step2: 'Check that META_WHATSAPP_PHONE_NUMBER_ID is correct',
-                            step3: 'Ensure the recipient number is in correct format (+919876543210 for India)',
-                            step4: 'Verify the phone number is registered on WhatsApp',
-                            step5: 'Check Meta Business Suite for detailed error logs',
-                            step6: 'For testing: Add recipient numbers to allowed list in Meta Business Suite'
-                        }
-                    })
                 },
                 { status: response.status }
             )
@@ -196,21 +178,16 @@ export async function POST(request: Request) {
             errorMessage = errorDetails.message || errorDetails.error || errorMessage
         }
 
-        // Log full error for debugging
+        // Log full error for debugging server-side only
         try {
-            console.error('Error details (stringified):', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+            console.error('WhatsApp send failed.', error.code || error.message);
         } catch (e) {
             console.error('Could not stringify error:', e)
         }
 
         return NextResponse.json(
             { 
-                error: 'Failed to send WhatsApp message', 
-                details: errorMessage,
-                ...(process.env.NODE_ENV === 'development' && { 
-                    fullError: errorDetails,
-                    errorType: error?.constructor?.name 
-                })
+                error: 'Failed to send WhatsApp message'
             },
             { status: 500 }
         )
