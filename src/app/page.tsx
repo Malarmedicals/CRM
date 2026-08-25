@@ -11,13 +11,23 @@ export default function Home() {
 
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        router.push('/dashboard')
-      } else {
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("Error getting session:", error)
+          setLoading(false)
+          return
+        }
+        if (session) {
+          router.push('/dashboard')
+        } else {
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        console.error("Unhandled error getting session:", err)
         setLoading(false)
-      }
-    })
+      })
 
     const {
       data: { subscription },
