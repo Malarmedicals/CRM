@@ -13,9 +13,13 @@ export const prescriptionService = {
     }
   },
 
-  async getPrescriptions() {
+  async getPrescriptions(status?: string) {
     try {
-      return await prescriptionRepository.getAll()
+      const all = await prescriptionRepository.getAll()
+      if (status) {
+        return all.filter((p: any) => p.status === status)
+      }
+      return all
     } catch (error: any) {
       logger.error('Failed to fetch prescriptions', error)
       throw new Error(`Failed to fetch prescriptions: ${error.message}`)

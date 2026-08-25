@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const fileUrl = searchParams.get('url');
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     
     // In the CRM, authentication relies on the HttpOnly session cookie, not an Authorization header.
     const sessionCookie = request.cookies.get('crm-auth-session')?.value;
-    token = token || sessionCookie;
+    token = token || sessionCookie || null;
 
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

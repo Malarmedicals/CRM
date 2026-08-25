@@ -35,7 +35,7 @@ export default function SubCategoryPage() {
                 let targetSubName = subSlug.replace(/-/g, ' ') // fallback
                 if (category && category.subcategories) {
                     const match = category.subcategories.find(
-                        sub => sub.toLowerCase().replace(/\s+/g, '-') === subSlug
+                        (sub: string) => sub.toLowerCase().replace(/\s+/g, '-') === subSlug
                     )
                     if (match) targetSubName = match
                 }

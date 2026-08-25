@@ -8,11 +8,13 @@ export function usePrescriptionListener() {
     useEffect(() => {
         let channel: ReturnType<typeof supabase.channel> | undefined;
 
+        let isMounted = true;
+
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
+            if (session && isMounted) {
                 const startTime = new Date().toISOString();
 
-                channel = supabase.channel('public:prescriptions')
+                channel = supabase.channel(`prescriptions-listener-${Math.random()}`)
                     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'prescriptions' }, async (payload) => {
                         const newDoc = payload.new as any;
                         if (newDoc.created_at && newDoc.created_at > startTime && newDoc.status === 'pending') {
@@ -37,6 +39,7 @@ export function usePrescriptionListener() {
         });
 
         return () => {
+            isMounted = false;
             if (channel) supabase.removeChannel(channel);
         };
     }, [toast]);

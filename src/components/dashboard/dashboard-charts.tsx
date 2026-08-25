@@ -33,7 +33,7 @@ export function SalesOverviewChart({ data }: SalesOverviewProps) {
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <AreaChart data={data}>
                             <defs>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -56,7 +56,7 @@ export function SalesOverviewChart({ data }: SalesOverviewProps) {
                             />
                             <Tooltip
                                 contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#ffffff', color: '#0f172a' }}
-                                formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Sales']}
+                                formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, 'Sales']}
                             />
                             <Area
                                 type="monotone"
@@ -87,7 +87,7 @@ export function RevenueBreakdownChart({ data }: RevenueBreakdownProps) {
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <PieChart>
                             <Pie
                                 data={data}
@@ -104,7 +104,7 @@ export function RevenueBreakdownChart({ data }: RevenueBreakdownProps) {
                             </Pie>
                             <Tooltip
                                 contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#ffffff', color: '#0f172a' }}
-                                formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                                formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, 'Revenue']}
                             />
                         </PieChart>
                     </ResponsiveContainer>
@@ -135,7 +135,7 @@ export function TopSellingChart({ data }: TopSellingProps) {
             </CardHeader>
             <CardContent>
                 <div className="h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <BarChart data={data} layout="vertical" margin={{ left: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
                             <XAxis type="number" hide />

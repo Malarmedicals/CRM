@@ -39,10 +39,10 @@ export function Navigation() {
         const fetchCategories = async () => {
             try {
                 const data = await categoryService.getAllCategories();
-                const mappedCategories: Category[] = data.map(cat => ({
+                const mappedCategories: Category[] = data.map((cat: any) => ({
                     name: cat.name,
                     icon: ICON_MAP[cat.name] || 'fa-solid fa-notes-medical',
-                    subcategories: (cat.subcategories || []).map(sub => ({
+                    subcategories: (cat.subcategories || []).map((sub: any) => ({
                         name: sub,
                         // subItems not supported in current DB schema
                     }))

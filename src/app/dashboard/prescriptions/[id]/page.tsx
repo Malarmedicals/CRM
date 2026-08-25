@@ -181,7 +181,7 @@ export default function PrescriptionVerificationPage({ params }: { params: Promi
                     message: 'Your prescription has been verified. You can now place an order.',
                     type: 'success',
                     is_read: false,
-                    user_id: prescription.user_id || prescription.userId || 'customer',
+                    user_id: prescription.userId || 'customer',
                     created_at: new Date().toISOString()
                 })
             } catch (err) {

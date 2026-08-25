@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, momentLocalizer, Views, View } from 'react-big-calendar'
 import moment from 'moment'
-import { CalendarEvent, EventType } from '@/lib/models/calendar'
+import type { CalendarEvent } from '@/features/calendar/domain/types'
 import { calendarService } from '@/features/calendar'
 import { Button } from '@/components/ui/button'
 import { Plus, Filter, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils'
 // Setup the localizer for react-big-calendar
 const localizer = momentLocalizer(moment)
 
-const EVENT_COLORS: Record<EventType, string> = {
+const EVENT_COLORS: Record<string, string> = {
     order_pickup: '#009688', // Teal
     delivery_slot: '#1E88E5', // Blue
     prescription_verification: '#FF7043', // Coral
@@ -116,12 +116,11 @@ export default function DashboardCalendar() {
                 title: formData.title,
                 start: formData.start,
                 end: formData.end,
-                type: formData.type as EventType || 'other',
+                type: formData.type || 'other',
                 description: formData.description,
                 allDay: formData.allDay || false,
                 status: 'scheduled',
                 participants: [], // Add current user logic here
-                color: EVENT_COLORS[formData.type as EventType] || EVENT_COLORS.other
             })
             toast.success('Event created successfully')
             setIsCreateOpen(false)
@@ -291,7 +290,7 @@ export default function DashboardCalendar() {
                                 <Label>Type</Label>
                                 <Select
                                     value={formData.type}
-                                    onValueChange={(val) => setFormData({ ...formData, type: val as EventType })}
+                                    onValueChange={(val) => setFormData({ ...formData, type: val })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select type" />

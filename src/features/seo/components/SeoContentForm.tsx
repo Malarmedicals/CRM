@@ -20,7 +20,7 @@ export function SeoContentForm({ initialData }: SeoContentFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  const [pageType, setPageType] = useState(initialData?.page_type || 'homepage')
+  const [pageType, setPageType] = useState<string>(initialData?.page_type || 'homepage')
   const [pageSlug, setPageSlug] = useState(initialData?.page_slug || 'home')
   const [metaTitle, setMetaTitle] = useState(initialData?.meta_title || '')
   const [metaDescription, setMetaDescription] = useState(initialData?.meta_description || '')

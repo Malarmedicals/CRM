@@ -27,7 +27,7 @@ import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { calendarService } from '@/features/calendar'
-import { CalendarEvent, EventType } from '@/lib/models/calendar'
+import type { CalendarEvent } from '@/features/calendar/domain/types'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -48,7 +48,7 @@ export function CalendarPopover({ className, onDateSelect }: CalendarPopoverProp
     // Quick Create State
     const [newEventTitle, setNewEventTitle] = React.useState('')
     const [newEventTime, setNewEventTime] = React.useState('09:00')
-    const [newEventType, setNewEventType] = React.useState<EventType>('staff_task')
+    const [newEventType, setNewEventType] = React.useState<string>('staff_task')
 
     // Filters
     const [filters, setFilters] = React.useState({
@@ -123,8 +123,7 @@ export function CalendarPopover({ className, onDateSelect }: CalendarPopoverProp
                 type: newEventType,
                 status: 'scheduled',
                 allDay: false,
-                participants: [],
-                color: '#009688' // Default teal
+                participants: []
             })
 
             toast.success('Event created successfully')
@@ -289,7 +288,7 @@ export function CalendarPopover({ className, onDateSelect }: CalendarPopoverProp
                                     </div>
                                     <div className="space-y-1">
                                         <Label htmlFor="type" className="text-xs">Type</Label>
-                                        <Select value={newEventType} onValueChange={(v) => setNewEventType(v as EventType)}>
+                                        <Select value={newEventType} onValueChange={setNewEventType}>
                                             <SelectTrigger className="h-8 text-xs">
                                                 <SelectValue />
                                             </SelectTrigger>

@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     switch (event) {
       case 'order.created':
         // E-commerce created an order - sync to CRM
-        await orderService.createOrder({
+        await orderService.addOrder({
           userId: data.userId,
           products: data.products,
           totalAmount: data.totalAmount,

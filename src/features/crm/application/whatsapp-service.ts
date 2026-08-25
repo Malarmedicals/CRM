@@ -77,4 +77,8 @@ export const whatsappService = {
       await this.sendMessage(phoneNumber, message)
     }
   },
+
+  async sendSegmentedMessage(segment: string, message: string, variables: any = {}): Promise<void> {
+    await this.queueMessage({ segment, message, status: 'pending' })
+  },
 }

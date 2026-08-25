@@ -7,7 +7,8 @@ export interface CalendarEvent {
   description?: string
   start: Date
   end: Date
-  type: 'appointment' | 'meeting' | 'reminder' | 'leave'
+  allDay: boolean
+  type: string // allow compatibility with lib/models/calendar
   participants: string[]
   createdBy: string
   location?: string

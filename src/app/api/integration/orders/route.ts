@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create order
-    const orderId = await orderService.createOrder({
+    const orderId = await orderService.addOrder({
       userId,
       products,
       totalAmount: totalAmount || products.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -104,14 +104,14 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const status = searchParams.get('status')
 
-    let orders = await orderService.getAllOrders()
+    let orders = await orderService.getOrders()
 
     // Apply filters
     if (userId) {
-      orders = orders.filter(order => order.userId === userId)
+      orders = orders.filter((order: any) => order.userId === userId)
     }
     if (status) {
-      orders = orders.filter(order => order.status === status)
+      orders = orders.filter((order: any) => order.status === status)
     }
 
     return NextResponse.json({ orders }, { status: 200 })
