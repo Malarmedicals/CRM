@@ -123,6 +123,38 @@ export async function POST(request: NextRequest) {
         }
         break
 
+      case 'shipment.updated':
+        // BlueDart shipment status changed on the e-commerce side — sync onto the CRM order
+        if (data.orderId) {
+          const shipmentStatus = String(data.status || '').toUpperCase()
+          const deliveryStatusMap: Record<string, string> = {
+            BOOKED: 'packing',
+            PICKED_UP: 'shipped',
+            IN_TRANSIT: 'shipped',
+            OUT_FOR_DELIVERY: 'shipped',
+            DELIVERED: 'delivered',
+          }
+          const orderStatusMap: Record<string, string> = {
+            DELIVERED: 'delivered',
+            CANCELLED: 'cancelled',
+          }
+
+          const updates: Record<string, unknown> = {
+            awbNo: data.awbNo ?? null,
+            courierStatus: shipmentStatus || null,
+            estimatedDelivery: data.expectedDeliveryDate ?? null,
+            lastScanLocation: data.lastScanLocation ?? null,
+            lastScanTimestamp: data.lastScanTimestamp ?? null,
+            codAmount: data.codAmount ?? 0,
+            dispatchTracking: data.awbNo ?? null,
+          }
+          if (deliveryStatusMap[shipmentStatus]) updates.deliveryStatus = deliveryStatusMap[shipmentStatus]
+          if (orderStatusMap[shipmentStatus]) updates.status = orderStatusMap[shipmentStatus]
+
+          await orderService.updateOrder(data.orderId, updates)
+        }
+        break
+
       case 'lead.created':
         // E-commerce contact form submission
         await leadService.createLead({

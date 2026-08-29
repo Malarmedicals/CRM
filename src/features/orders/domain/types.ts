@@ -23,8 +23,19 @@ export interface Order {
   isNew?: boolean
   paymentMethod?: string
   deliveryStatus?: 'pending' | 'packing' | 'shipped' | 'delivered'
+  razorpayOrderId?: string | null;
+  paymentId?: string | null;
+  coupon_code?: string | null;
+  coupon_discount?: number;
   prescriptionVerified: boolean
   dispatchTracking?: string
+  // BlueDart shipment fields, synced from e-commerce via the shipment.updated webhook event
+  awbNo?: string | null
+  courierStatus?: string | null
+  estimatedDelivery?: string | null
+  lastScanLocation?: string | null
+  lastScanTimestamp?: string | null
+  codAmount?: number | null
   createdAt: Date
   updatedAt: Date
 }

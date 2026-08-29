@@ -410,12 +410,29 @@ export default function OrdersPage() {
                         <div className="text-xs text-slate-500 mt-0.5">{order.products?.length || 0} items</div>
                       </td>
 
+
                       {/* Payment */}
                       <td className="px-4 py-3 align-top">
                         <Badge variant="outline" className={`${paymentConfig.badgeClass} rounded-full`}>
                           {paymentConfig.label}
                         </Badge>
+                        {order.paymentId && (
+                          <div className="mt-1 flex items-center gap-1" title={`Payment ID: ${order.paymentId}`}>
+                            <CreditCard className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="text-[10px] text-slate-500 font-mono truncate max-w-[120px]">
+                              {order.paymentId}
+                            </span>
+                          </div>
+                        )}
+                        {order.razorpayOrderId && (
+                          <div className="mt-0.5 flex items-center gap-1" title={`Razorpay Order ID: ${order.razorpayOrderId}`}>
+                            <span className="text-[9px] text-slate-400 font-mono truncate max-w-[120px]">
+                              {order.razorpayOrderId}
+                            </span>
+                          </div>
+                        )}
                       </td>
+
 
                       {/* Delivery Status */}
                       <td className="px-4 py-3 align-top">

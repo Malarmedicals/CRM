@@ -9,7 +9,7 @@ import {
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ORDER_WORKFLOW, PAYMENT_STATUSES } from '@/config/order-workflow'
-import { User, CreditCard, Package, CheckCircle, Clock, Calendar, Phone, Mail } from 'lucide-react'
+import { User, CreditCard, Package, CheckCircle, Clock, Calendar, Phone, Mail, Truck, MapPin } from 'lucide-react'
 import { OrderStockHistory } from '@/components/orders/order-stock-history'
 
 interface OrderDetailsDrawerProps {
@@ -78,6 +78,12 @@ export function OrderDetailsDrawer({ order, isOpen, onClose }: OrderDetailsDrawe
                </div>
                <p className="font-bold text-2xl text-slate-900">₹{(order.totalAmount || 0).toFixed(2)}</p>
                <p className="text-xs text-slate-500 mt-1">{order.paymentMethod || 'Online Payment'}</p>
+               {order.razorpayOrderId && (
+                 <div className="mt-2 text-xs text-slate-500 border-t pt-2 border-slate-100">
+                   <p><span className="font-medium text-slate-600">RP Order ID:</span> {order.razorpayOrderId}</p>
+                   {order.paymentId && <p><span className="font-medium text-slate-600">Payment ID:</span> {order.paymentId}</p>}
+                 </div>
+               )}
             </Card>
           </div>
 
@@ -94,6 +100,38 @@ export function OrderDetailsDrawer({ order, isOpen, onClose }: OrderDetailsDrawe
               )}
             </div>
           </Card>
+
+          {order.awbNo && (
+            <Card className="p-4 shadow-sm border-slate-200">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <Truck className="h-4 w-4" />
+                  <span className="text-sm font-medium">Shipment (BlueDart)</span>
+                </div>
+                <Badge variant="outline" className="text-slate-700 border-slate-300">
+                  {(order.courierStatus || 'BOOKED').replace(/_/g, ' ')}
+                </Badge>
+              </div>
+              <p className="text-sm text-slate-700"><span className="font-medium text-slate-600">AWB:</span> {order.awbNo}</p>
+              {order.estimatedDelivery && (
+                <p className="text-sm text-slate-500 mt-1">
+                  Expected by {new Date(order.estimatedDelivery).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              )}
+              {order.lastScanLocation && (
+                <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {order.lastScanLocation}
+                  {order.lastScanTimestamp && <span className="text-slate-400">· {order.lastScanTimestamp}</span>}
+                </p>
+              )}
+              {!!order.codAmount && order.codAmount > 0 && (
+                <p className="text-sm text-orange-600 font-semibold mt-1">
+                  COD Amount: ₹{order.codAmount.toLocaleString('en-IN')}
+                </p>
+              )}
+            </Card>
+          )}
 
           <Card className="overflow-hidden shadow-sm border-slate-200">
             <div className="bg-slate-50 p-3 border-b border-slate-200 font-medium text-sm flex items-center gap-2 text-slate-700">
@@ -114,6 +152,15 @@ export function OrderDetailsDrawer({ order, isOpen, onClose }: OrderDetailsDrawe
                 </div>
               ))}
             </div>
+            {order.coupon_code && (
+              <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-between items-center">
+                <div>
+                  <span className="font-medium text-slate-700">Coupon Applied</span>
+                  <Badge className="ml-2 bg-[#00796b]/10 text-[#00796b] border-[#00796b]/20 border hover:bg-[#00796b]/20">{order.coupon_code}</Badge>
+                </div>
+                <span className="font-medium text-emerald-600">-₹{(order.coupon_discount || 0).toFixed(2)}</span>
+              </div>
+            )}
             <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-between items-center">
               <span className="font-medium text-slate-700">Total Amount</span>
               <span className="font-bold text-xl text-slate-900">₹{(order.totalAmount || 0).toFixed(2)}</span>

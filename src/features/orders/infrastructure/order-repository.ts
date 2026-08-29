@@ -8,10 +8,13 @@ function mapDbRowToOrder(doc: any): Order {
   return {
     id: doc.id,
     ...doc,
+    paymentId: doc.paymentId ?? doc.payment_id ?? doc.razorpay_payment_id ?? null,
+    razorpayOrderId: doc.razorpayOrderId ?? doc.razorpay_order_id ?? null,
     createdAt: new Date(doc.created_at || Date.now()),
     updatedAt: new Date(doc.updated_at || Date.now()),
   }
 }
+
 
 export const orderRepository = {
   async getAll(): Promise<Order[]> {
