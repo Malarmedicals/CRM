@@ -18,7 +18,7 @@ import {
     Area,
 } from "recharts"
 
-const COLORS = ["#059669", "#2563eb", "#d97706", "#475569"] // Emerald, Blue, Amber, Slate
+const COLORS = ["#059669", "#2563eb", "#d97706", "#475569"] 
 
 interface SalesOverviewProps {
     data: { name: string; value: number }[]
