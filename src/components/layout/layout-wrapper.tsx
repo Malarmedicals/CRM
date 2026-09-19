@@ -19,7 +19,6 @@ export default function LayoutWrapper({ children }: LayoutWrapperProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const isDashboardRoute = pathname?.startsWith('/dashboard')
 
-  // Activate global listeners (failsafe)
   useOrderListener();
   usePrescriptionListener();
 
