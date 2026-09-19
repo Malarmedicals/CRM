@@ -85,8 +85,9 @@ export async function middleware(request: NextRequest) {
     // API route defense-in-depth
     const isAuthRoute = request.nextUrl.pathname.startsWith('/api/auth');
     const isIntegrationRoute = request.nextUrl.pathname.startsWith('/api/integration');
+    const isWhatsAppWebhookRoute = request.nextUrl.pathname.startsWith('/api/whatsapp/webhook');
     
-    if (!isAuthRoute && !isIntegrationRoute) {
+    if (!isAuthRoute && !isIntegrationRoute && !isWhatsAppWebhookRoute) {
       const sessionCookie = request.cookies.get('crm-auth-session');
       if (!sessionCookie || !sessionCookie.value || sessionCookie.value === 'true') {
         return new NextResponse(
