@@ -49,9 +49,9 @@ export const webhookService = {
         if (value.messages && Array.isArray(value.messages)) {
           for (const message of value.messages) {
             const eventKey = `message-${message.id}`;
-            const contact = contacts?.find((c) => c.wa_id === message.from);
+            const contactRaw = contacts?.find((c: any) => c.wa_id === message.from);
+            const contact = contactRaw ? { name: contactRaw.profile?.name || '', wa_id: contactRaw.wa_id } : undefined;
             const event: InboundMessageEvent = { message, contact, metadata };
-            
             await this.processEventIdempotently(
               supabase, 
               eventKey, 
